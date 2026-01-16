@@ -1,0 +1,746 @@
+* { box-sizing: border-box; }
+
+body{
+  margin:0;
+  font-family: Calibri, Arial, Helvetica, sans-serif;
+  background:#F9FAFB;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* ---------------- SCREENS ---------------- */
+.screen{
+  display:none;
+  position:absolute;
+  inset:0;
+  padding:20px;
+  text-align:center;
+  overflow-y:auto;
+  color:#00688b;
+}
+
+.screen.active{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+h1{ margin-bottom:5px; }
+.subtitle{ margin-bottom:20px; color:#36648b; }
+
+/* ---------------- BOTÕES ---------------- */
+button{
+  width:80%;
+  max-width:300px;
+  padding:16px;
+  margin:10px 0;
+  font-size:18px;
+  border:none;
+  border-radius:14px;
+  cursor:pointer;
+}
+button:active{ transform:scale(0.97); }
+
+.btn-treino{ background:#458b74; color:#fff; }
+.btn-alimentar{ background:#cd6839; color:#fff; }
+.btn-progresso{ background:#27408b; color:#fff; }
+
+.full-width{ width:100%; max-width:none; }
+
+/* ===================== VOLTAR EM CIMA ===================== */
+.back-top{
+  width: auto !important;
+  max-width: none !important;
+
+  padding: 0 !important;
+  margin: 0 0 10px 0 !important;
+
+  background: transparent !important;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 700;
+
+  border: none !important;
+  border-radius: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  align-self: flex-start;
+}
+
+.back-top span{
+  font-weight: 700;
+}
+
+/* ---------------- LIGHTBOX ---------------- */
+#lightbox{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.9);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:100;
+}
+
+.lightbox-content{
+  background:#1f2937;
+  padding:20px;
+  border-radius:14px;
+  width:90%;
+  max-width:420px;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  position:relative;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.lightbox-content img,
+.lightbox-content video{
+  max-width:100%;
+  border-radius:8px;
+}
+
+.lightbox-close{
+  position:absolute;
+  top:8px;
+  right:8px;
+  background:#ef4444;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  color:white;
+  font-size:18px;
+  padding:0;
+}
+
+/* ===================== ÍCONES EDITAR/APAGAR ===================== */
+.edit-btn,
+.remove-btn{
+  width:22px;
+  height:22px;
+  margin:0;
+  padding:0;
+  border:none;
+  border-radius:6px;
+  background:transparent;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:16px;
+  line-height:1;
+}
+
+.edit-btn{ color:#2563eb; }
+.remove-btn{ color:#ef4444; }
+
+.edit-btn:hover{ background:rgba(37,99,235,0.10); }
+.remove-btn:hover{ background:rgba(239,68,68,0.10); }
+
+/* ===================== CARDS + HEADERS ===================== */
+.progress-header{
+  width:100%;
+  max-width:420px;
+  display:flex;
+  align-items:center;
+  position:relative;
+  margin-top:0;
+  margin-bottom:10px;
+}
+
+.progress-title{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  margin:0;
+  color:#111827;
+
+  font-size: 22px;
+  font-weight: 800;
+  max-width: 78%;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.icon-btn{
+  width:34px;
+  height:34px;
+  padding:0;
+  border-radius:10px;
+  background:#111827;
+  color:#fff;
+  font-size:20px;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-left:auto;
+  margin-top:0;
+  margin-bottom:0;
+}
+
+/* ✅ CARD BASE */
+.card{
+  width:100%;
+  max-width:420px;
+  background:#ffffff;
+  border-radius:14px;
+  padding:14px;
+  margin:10px 0;
+
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+
+  text-align:left;
+  color:#111827;
+}
+
+.card-title{
+  font-weight:700;
+  font-size:14px;
+  margin-bottom:10px;
+  color:#111827;
+}
+
+.section-title{
+  width:100%;
+  max-width:420px;
+  text-align:left;
+  font-weight:700;
+  color:#111827;
+  margin-top:8px;
+}
+
+/* ===================== LISTAS ===================== */
+.progress-list{
+  width:100%;
+  max-width:420px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.list-card{
+  background:#ffffff;
+  color:#111827;
+  border-radius:12px;
+  padding:12px;
+
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  text-align:left;
+}
+
+.list-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+
+.thumb{
+  width:44px;
+  height:44px;
+  border-radius:10px;
+  background:#eef2ff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  flex: 0 0 44px;
+}
+
+.thumb img, .thumb video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.list-title{
+  font-weight:800;
+  color:#111827;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:240px;
+}
+
+.list-sub{
+  font-size:12px;
+  color:#6b7280;
+  margin-top:4px;
+  line-height:16px;
+  min-height:32px;
+}
+
+/* nos EXERCÍCIOS: 1 linha fixa + ellipsis */
+#screenDay .list-sub{
+  min-height:16px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.list-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:0 0 auto;
+}
+
+.small-check{
+  transform:scale(1.15);
+}
+
+/* largura fixa do bloco de texto */
+#screenDay .list-left > :nth-child(3){
+  width: min(240px, 56vw);
+  max-width: min(240px, 56vw);
+  min-width: 0;
+}
+#screen1 .list-left > :nth-child(1){
+  width: min(240px, 70vw);
+  max-width: min(240px, 70vw);
+  min-width: 0;
+}
+
+/* ===================== PROGRESSO ===================== */
+.chart-wrap{
+  width:100%;
+  border-radius:12px;
+  background:#ffffff;
+  padding:12px;
+}
+
+#weightChart{
+  width:100% !important;
+  height:220px !important;
+  max-width:100%;
+  margin:0;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
+}
+
+.summary-item{
+  border-right:1px solid #e5e7eb;
+  padding-right:10px;
+}
+.summary-item:last-child{
+  border-right:none;
+  padding-right:0;
+}
+
+.summary-label{
+  font-size:12px;
+  color:#6b7280;
+  margin-bottom:6px;
+}
+.summary-value{
+  font-size:16px;
+  font-weight:800;
+  color:#111827;
+}
+
+.form-actions{
+  display:flex;
+  gap:10px;
+  margin-top:6px;
+}
+
+.btn-primary{
+  width:100%;
+  margin:0;
+  background:#111827;
+  color:#fff;
+  border-radius:12px;
+}
+.btn-danger{
+  width:100%;
+  margin:0;
+  background:#ef4444;
+  color:#fff;
+  border-radius:12px;
+}
+
+/* ===================== MODAIS ===================== */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.55);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:200;
+  padding:18px;
+}
+
+.modal-card{
+  width:100%;
+  max-width:420px;
+  background:#ffffff;
+  border-radius:14px;
+  padding:14px;
+
+  border: 1px solid #e5e7eb;
+  box-shadow:0 10px 30px rgba(0,0,0,0.15);
+
+  text-align:left;
+  color:#111827;
+}
+
+.modal-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.modal-head h2{
+  margin:0;
+  font-size:16px;
+  font-weight:800;
+}
+
+.modal-close{
+  width:32px;
+  height:32px;
+  padding:0;
+  margin:0;
+  border-radius:10px;
+  background:#f3f4f6;
+  color:#111827;
+  font-size:18px;
+}
+
+.modal-sub{
+  margin:8px 0 12px;
+  color:#6b7280;
+  font-size:13px;
+}
+
+.modal input{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  margin-bottom:10px;
+}
+
+/* ===================== DETALHE EXERCÍCIO ===================== */
+#ex-notes{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  font-family:inherit;
+}
+
+.media-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:10px;
+}
+
+.media-item{
+  width:74px;
+  height:74px;
+  border-radius:12px;
+  overflow:hidden;
+  position:relative;
+  background:#f3f4f6;
+  flex:0 0 auto;
+  border: 1px solid #e5e7eb;
+}
+
+.media-item img, .media-item video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.media-item button{
+  position:absolute;
+  top:6px;
+  right:6px;
+  width:22px;
+  height:22px;
+  padding:0;
+  margin:0;
+  border-radius:8px;
+  background:rgba(239,68,68,0.12);
+  color:#ef4444;
+  font-size:14px;
+}
+
+.done-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:700;
+  color:#111827;
+}
+.done-row input{
+  transform:scale(1.2);
+}
+
+/* ações no header (✏️ e ×) */
+.header-actions{
+  margin-left:auto;
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.header-actions button{
+  width: 22px !important;
+  height: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Exercício concluído: mais clarinho e riscado */
+.list-card.done{
+  opacity: 0.55;
+}
+.list-card.done .list-title,
+.list-card.done .list-sub{
+  text-decoration: line-through;
+}
+
+/* ===== Progresso: modal com layout "data + peso" e notas grandes ===== */
+#progress-form{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.progress-form-row{
+  display:grid;
+  grid-template-columns: 1fr 92px; /* data grande | peso pequeno */
+  gap:10px;
+  align-items:center;
+}
+
+#progress-form input,
+#progress-form textarea{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  font-family:inherit;
+}
+
+#progress-form textarea{
+  min-height:120px;
+  resize:vertical;
+}
+
+/* ===================== PROGRESSO: igual ao visual dos TreINOS ===================== */
+
+/* No Progresso, o bloco de texto deve ter largura fixa (como nos dias) */
+#screen3 .list-left > :nth-child(1){
+  width: min(240px, 70vw);
+  max-width: min(240px, 70vw);
+  min-width: 0;
+}
+
+/* No Progresso, o subtexto não deve ter altura "fixa de 2 linhas" como os dias.
+   Permite 1–2 linhas (peso + notas) e corta o excesso com reticências. */
+#screen3 .list-sub{
+  min-height: 16px;
+  line-height: 16px;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  overflow: hidden;
+}
+
+/* ===================== PROGRESSO: acabamento igual aos TREINOS ===================== */
+
+/* 1) “Histórico de Registos” com o mesmo alinhamento/respiração dos treinos */
+#screen3 .section-title{
+  margin-top: 14px;   /* dá um respiro igual ao resto */
+  margin-bottom: 6px;
+}
+
+/* 2) Lista do progresso com a mesma “cadência” visual das listas dos treinos */
+#screen3 #progress-list.progress-list{
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+/* 3) No Progresso, o bloco de texto dos registos fica com largura fixa (igual aos dias) */
+#screen3 .list-left > :nth-child(1){
+  width: min(240px, 70vw);
+  max-width: min(240px, 70vw);
+  min-width: 0;
+}
+
+/* 4) Subtexto (peso + notas) igual ao estilo “clean” do treino:
+      até 2 linhas e não força altura fixa como nos DIAS */
+#screen3 .list-sub{
+  min-height: 16px;
+  line-height: 16px;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  overflow: hidden;
+}
+
+/* 5) Opcional: o card “Resumo” ficar mais parecido ao spacing do resto */
+#screen3 .summary-grid{
+  margin-top: 2px;
+}
+
+/* 6) Opcional: deixar o gráfico e resumo com o mesmo ritmo de cards */
+#screen3 .card{
+  margin: 10px 0;
+}
+
+/* ===================== HOME (novo layout) ===================== */
+.home-title{
+  margin: 10px 0 6px;
+  font-size: 22px;
+  font-weight: 800;
+  color:#111827;
+  text-align:center;
+}
+
+.home-subtitle{
+  margin: 0 0 14px;
+  color:#6b7280;
+  font-size: 13px;
+  text-align:center;
+}
+
+.home-grid{
+  width:100%;
+  max-width:420px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  margin-top: 6px;
+}
+
+.home-card{
+  background:#ffffff;
+  border: 1px solid #e5e7eb;       /* linha fininha, igual aos cards */
+  border-radius:14px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  padding: 18px 16px;
+  text-align:center;
+  color:#111827;
+  cursor:pointer;
+  user-select:none;
+}
+
+.home-card:active{
+  transform: scale(0.99);
+}
+
+.home-icon{
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin: 2px auto 12px;
+  font-size: 22px;
+}
+
+.home-icon.bg-blue{   background: rgba(37,99,235,0.12); }
+.home-icon.bg-green{  background: rgba(34,197,94,0.12); }
+.home-icon.bg-purple{ background: rgba(168,85,247,0.12); }
+
+.home-card-title{
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color:#111827;
+}
+
+.home-card-desc{
+  font-size: 12px;
+  line-height: 16px;
+  color:#6b7280;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+/* Progresso: não meter margin-bottom nos inputs da linha data/peso */
+#modal-progress .progress-form-row input{
+  margin-bottom: 0;
+}
+
+/* ===================== SPLASH (logo ao abrir) ===================== */
+.splash{
+  position: fixed;
+  inset: 0;
+  background: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.splash-inner{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.splash-logo{
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.06);
+  padding: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.splash-title{
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  opacity: 0.95;
+}
+
+.splash.hide{
+  animation: splashFade 0.45s ease forwards;
+}
+
+@keyframes splashFade{
+  to { opacity: 0; visibility: hidden; }
+}

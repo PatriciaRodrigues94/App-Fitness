@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>App-Fitness</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#111827" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- SPLASH (logo ao abrir) -->
+  <div id="splash" class="splash" aria-hidden="true">
+    <div class="splash-inner">
+      <img src="icon-512.png" alt="Logo" class="splash-logo" />
+      <div class="splash-title">App-Fitness</div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="home" class="screen active">
+    <h1 class="home-title">Minha App de Fitness</h1>
+    <p class="home-subtitle">Escolha uma opção</p>
+
+    <div class="home-grid">
+      <div class="home-card" data-screen="screen1" role="button" tabindex="0" aria-label="Abrir Plano de Treino">
+        <div class="home-icon bg-blue" aria-hidden="true">🏋️</div>
+        <div class="home-card-title">Plano de Treino</div>
+        <div class="home-card-desc">Organize seus exercícios por dia e acompanhe seu progresso</div>
+      </div>
+
+      <div class="home-card" data-screen="screen2" role="button" tabindex="0" aria-label="Abrir Plano Alimentar">
+        <div class="home-icon bg-green" aria-hidden="true">🍽️</div>
+        <div class="home-card-title">Plano Alimentar</div>
+        <div class="home-card-desc">Planeje suas refeições diárias com fotos e notas</div>
+      </div>
+
+      <div class="home-card" data-screen="screen3" role="button" tabindex="0" aria-label="Abrir Progresso">
+        <div class="home-icon bg-purple" aria-hidden="true">📈</div>
+        <div class="home-card-title">Progresso</div>
+        <div class="home-card-desc">Acompanhe seu peso e evolução ao longo do tempo</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== TREINO: DIAS ================== -->
+  <div id="screen1" class="screen">
+    <button class="back-top" data-screen="home">← <span>Voltar</span></button>
+
+    <div class="progress-header">
+      <h1 class="progress-title">Plano de Treino</h1>
+      <button id="add-day-btn" class="icon-btn" aria-label="Adicionar dia">+</button>
+    </div>
+
+    <div id="days-list" class="progress-list"></div>
+  </div>
+
+  <!-- ================== TREINO: EXERCÍCIOS DO DIA ================== -->
+  <div id="screenDay" class="screen">
+    <button class="back-top" id="back-to-days">← <span>Voltar</span></button>
+
+    <div class="progress-header">
+      <h1 class="progress-title" id="day-title">Dia</h1>
+      <button id="add-ex-btn" class="icon-btn" aria-label="Adicionar exercício">+</button>
+    </div>
+
+    <div id="ex-list" class="progress-list"></div>
+  </div>
+
+  <!-- ================== TREINO: DETALHE DO EXERCÍCIO ================== -->
+  <div id="screenExercise" class="screen">
+    <button class="back-top" id="back-to-day">← <span>Voltar</span></button>
+
+    <div class="progress-header">
+      <h1 class="progress-title" id="ex-title">Exercício</h1>
+
+      <div class="header-actions">
+        <button id="edit-ex-btn" class="edit-btn" aria-label="Editar exercício">✏️</button>
+        <button id="delete-ex-btn" class="remove-btn" aria-label="Eliminar exercício">×</button>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="card-title">Fotos/Vídeos</div>
+      <input type="file" id="ex-media-input" accept="image/*,video/*" multiple />
+      <div id="ex-media-grid" class="media-grid"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">Anotações</div>
+      <textarea id="ex-notes" rows="3" placeholder="Ex: 3 x 15 Rep"></textarea>
+    </section>
+
+    <section class="card">
+      <label class="done-row">
+        <input type="checkbox" id="ex-done" />
+        <span>Marcar como concluído</span>
+      </label>
+    </section>
+  </div>
+
+  <!-- ================== PLANO ALIMENTAR ================== -->
+  <div id="screen2" class="screen">
+    <button class="back-top" data-screen="home">← <span>Voltar</span></button>
+
+    <h1>Plano Alimentar</h1>
+    <p>Conteúdo do plano alimentar.</p>
+  </div>
+
+  <!-- ================== PROGRESSO ================== -->
+  <div id="screen3" class="screen">
+    <button class="back-top" data-screen="home">← <span>Voltar</span></button>
+
+    <div class="progress-header">
+      <h1 class="progress-title">Progresso</h1>
+      <button id="add-record-btn" class="icon-btn" aria-label="Adicionar registo">+</button>
+    </div>
+
+    <section class="card">
+      <div class="card-title">Gráfico de Progresso</div>
+      <div class="chart-wrap">
+        <canvas id="weightChart" width="400" height="150"></canvas>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">Resumo</div>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="summary-label">Peso Inicial</div>
+          <div class="summary-value" id="sum-initial">—</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Peso Atual</div>
+          <div class="summary-value" id="sum-current">—</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Diferença</div>
+          <div class="summary-value" id="sum-diff">—</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-title">Histórico de Registos</div>
+    <div id="progress-list" class="progress-list"></div>
+  </div>
+
+  <!-- ================== MODAL: DIA ================== -->
+  <div id="modal-day" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="modal-day-title">Novo Dia de Treino</h2>
+        <button type="button" class="modal-close" id="close-day-modal">×</button>
+      </div>
+      <p class="modal-sub">Crie um novo dia para organizar os seus exercícios.</p>
+      <input type="text" id="day-name" placeholder="Ex: Segunda-feira, Dia 1, etc." />
+      <button type="button" id="save-day" class="btn-primary full-width">Guardar</button>
+    </div>
+  </div>
+
+  <!-- ================== MODAL: EXERCÍCIO ================== -->
+  <div id="modal-ex" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="modal-ex-title">Novo Exercício</h2>
+        <button type="button" class="modal-close" id="close-ex-modal">×</button>
+      </div>
+      <input type="text" id="ex-name" placeholder="Nome do exercício (ex: Agachamento)" />
+      <input type="text" id="ex-quick" placeholder="Notas curtas (ex: 3 x 15 Rep)" />
+      <button type="button" id="save-ex" class="btn-primary full-width">Guardar</button>
+    </div>
+  </div>
+
+  <!-- ================== MODAL: PROGRESSO ================== -->
+  <div id="modal-progress" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="modal-progress-title">Novo Registo</h2>
+        <button type="button" class="modal-close" id="close-progress-modal">×</button>
+      </div>
+
+      <p class="modal-sub">Adicione o seu peso e observações.</p>
+
+      <form id="progress-form">
+        <div class="progress-form-row">
+          <input type="date" id="date" required />
+          <input type="number" id="weight" step="0.1" placeholder="Peso (kg)" required />
+        </div>
+
+        <textarea id="notes" rows="4" placeholder="Observações"></textarea>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary full-width">Guardar</button>
+          <button type="button" id="cancel-btn" class="btn-danger full-width">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================== LIGHTBOX (MEDIA) ================== -->
+  <div id="lightbox">
+    <div class="lightbox-content">
+      <button type="button" class="lightbox-close">×</button>
+      <h2 id="lightbox-title"></h2>
+      <img id="lightbox-img" style="display:none;" />
+      <video id="lightbox-video" controls style="display:none;"></video>
+      <textarea id="lightbox-notes" placeholder="Notas (opcional para esta foto/vídeo)"></textarea>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
+
+  <!-- Service Worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js");
+      });
+    }
+  </script>
+
+  <!-- Esconder splash -->
+  <script>
+    window.addEventListener("load", () => {
+      const splash = document.getElementById("splash");
+      if (!splash) return;
+      setTimeout(() => splash.classList.add("hide"), 450);
+      setTimeout(() => splash.remove(), 900);
+    });
+  </script>
+
+</body>
+</html>
