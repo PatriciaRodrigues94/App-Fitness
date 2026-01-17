@@ -103,14 +103,81 @@
     </section>
   </div>
 
-  <!-- ================== PLANO ALIMENTAR ================== -->
-  <div id="screen2" class="screen">
-    <button class="back-top" data-screen="home">← <span>Voltar</span></button>
+<!-- ================== PLANO ALIMENTAR: TIPOS ================== -->
+<div id="screen2" class="screen">
+  <button class="back-top" data-screen="home">← <span>Voltar</span></button>
 
-    <h1>Plano Alimentar</h1>
-    <p>Conteúdo do plano alimentar.</p>
+  <div class="progress-header">
+    <h1 class="progress-title">Plano Alimentar</h1>
+    <button id="add-mealtype-btn" class="icon-btn" aria-label="Adicionar tipo de refeição">+</button>
   </div>
 
+  <div id="mealtypes-list" class="progress-list"></div>
+</div>
+
+<!-- ================== PLANO ALIMENTAR: REFEIÇÕES DO TIPO ================== -->
+<div id="screenMealType" class="screen">
+  <button class="back-top" id="back-to-mealtypes">← <span>Voltar</span></button>
+
+  <div class="progress-header">
+    <h1 class="progress-title" id="mealtype-title">Tipo</h1>
+    <button id="add-meal-btn" class="icon-btn" aria-label="Adicionar refeição">+</button>
+  </div>
+
+  <div id="meals-list" class="progress-list"></div>
+</div>
+
+<!-- ================== PLANO ALIMENTAR: DETALHE DA REFEIÇÃO ================== -->
+<div id="screenMeal" class="screen">
+  <button class="back-top" id="back-to-meals">← <span>Voltar</span></button>
+
+  <div class="progress-header">
+    <h1 class="progress-title" id="meal-title">Refeição</h1>
+
+    <div class="header-actions">
+      <button id="edit-meal-btn" class="edit-btn" aria-label="Editar refeição">✏️</button>
+      <button id="delete-meal-btn" class="remove-btn" aria-label="Eliminar refeição">×</button>
+    </div>
+  </div>
+
+  <section class="card">
+    <div class="card-title">Fotos/Vídeos</div>
+    <input type="file" id="meal-media-input" accept="image/*,video/*" multiple />
+    <div id="meal-media-grid" class="media-grid"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">Anotações</div>
+    <textarea id="meal-notes" rows="3" placeholder="Ex: 2 ovos + aveia, 1 iogurte, etc."></textarea>
+  </section>
+</div>
+
+<!-- ================== MODAL: TIPO DE REFEIÇÃO ================== -->
+<div id="modal-mealtype" class="modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="modal-mealtype-title">Novo Tipo de Refeição</h2>
+      <button type="button" class="modal-close" id="close-mealtype-modal">×</button>
+    </div>
+    <p class="modal-sub">Crie um tipo (ex: Pequeno-almoço, Almoço, Jantar...).</p>
+    <input type="text" id="mealtype-name" placeholder="Ex: Pequeno-almoço" />
+    <button type="button" id="save-mealtype" class="btn-primary full-width">Guardar</button>
+  </div>
+</div>
+
+<!-- ================== MODAL: REFEIÇÃO ================== -->
+<div id="modal-meal" class="modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="modal-meal-title">Nova Refeição</h2>
+      <button type="button" class="modal-close" id="close-meal-modal">×</button>
+    </div>
+    <p class="modal-sub">Dê um título à refeição (ex: “Pequeno-almoço 1”, “Almoço de domingo”).</p>
+    <input type="text" id="meal-name" placeholder="Título da refeição" />
+    <button type="button" id="save-meal" class="btn-primary full-width">Guardar</button>
+  </div>
+</div>
+  
   <!-- ================== PROGRESSO ================== -->
   <div id="screen3" class="screen">
     <button class="back-top" data-screen="home">← <span>Voltar</span></button>
@@ -235,4 +302,5 @@
   </script>
 
 </body>
+
 </html>
