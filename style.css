@@ -743,4 +743,13 @@ button:active{ transform:scale(0.97); }
 
 @keyframes splashFade{
   to { opacity: 0; visibility: hidden; }
+
+}
+
+#meal-notes{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  font-family:inherit;
 }
