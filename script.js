@@ -790,4 +790,489 @@ function drawChart(data) {
 window.onload = () => {
   renderDays();
   renderProgress();
+
 };
+
+/* =========================================================
+   PLANO ALIMENTAR (NOVO) — sem mexer no que já existe
+========================================================= */
+
+/* STORAGE (ALIMENTAÇÃO) */
+const MEALTYPES_KEY = 'ft_mealtypes';
+const MEALS_KEY = 'ft_meals';
+
+const loadMealTypes = () => JSON.parse(localStorage.getItem(MEALTYPES_KEY) || '[]');
+const saveMealTypes = d => localStorage.setItem(MEALTYPES_KEY, JSON.stringify(d));
+
+const loadMeals = () => JSON.parse(localStorage.getItem(MEALS_KEY) || '[]');
+const saveMeals = d => localStorage.setItem(MEALS_KEY, JSON.stringify(d));
+
+/* ESTADO (ALIMENTAÇÃO) */
+let currentMealTypeId = null;
+let currentMealId = null;
+
+let editingMealTypeId = null;
+let editingMealId = null;
+
+/* ELEMENTOS */
+const mealTypesList = qs('#mealtypes-list');
+const mealsList = qs('#meals-list');
+
+const modalMealType = qs('#modal-mealtype');
+const modalMeal = qs('#modal-meal');
+
+/* MODAIS — abrir/fechar */
+function openModalX(el){ el.style.display = 'flex'; }
+function closeModalX(el){ el.style.display = 'none'; }
+
+if (qs('#close-mealtype-modal')) qs('#close-mealtype-modal').onclick = () => closeModalX(modalMealType);
+if (qs('#close-meal-modal')) qs('#close-meal-modal').onclick = () => closeModalX(modalMeal);
+
+if (modalMealType) modalMealType.addEventListener('click', e => { if (e.target === modalMealType) closeModalX(modalMealType); });
+if (modalMeal) modalMeal.addEventListener('click', e => { if (e.target === modalMeal) closeModalX(modalMeal); });
+
+/* ---------- TIPOS DE REFEIÇÃO ---------- */
+function renderMealTypes() {
+  if (!mealTypesList) return;
+
+  const types = loadMealTypes();
+  const meals = loadMeals();
+
+  mealTypesList.innerHTML = '';
+
+  const sorted = [...types].sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+
+  sorted.forEach(t => {
+    const count = meals.filter(m => m.mealTypeId === t.id).length;
+
+    const card = document.createElement('div');
+    card.className = 'list-card';
+
+    const left = document.createElement('div');
+    left.className = 'list-left';
+
+    const titleBox = document.createElement('div');
+
+    const title = document.createElement('div');
+    title.className = 'list-title';
+    title.textContent = t.title;
+
+    const sub = document.createElement('div');
+    sub.className = 'list-sub';
+    sub.innerHTML = `${count} refeições`;
+
+    titleBox.append(title, sub);
+    left.append(titleBox);
+
+    const actions = document.createElement('div');
+    actions.className = 'list-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-btn';
+    editBtn.textContent = '✏️';
+    editBtn.title = 'Editar tipo';
+    editBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      editingMealTypeId = t.id;
+      qs('#modal-mealtype-title').textContent = 'Editar Tipo';
+      qs('#mealtype-name').value = t.title;
+      openModalX(modalMealType);
+    };
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'remove-btn';
+    delBtn.textContent = '×';
+    delBtn.title = 'Eliminar tipo';
+    delBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      const ok = confirm('Eliminar este tipo e todas as refeições dentro dele?');
+      if (!ok) return;
+
+      saveMealTypes(loadMealTypes().filter(x => x.id !== t.id));
+      saveMeals(loadMeals().filter(m => m.mealTypeId !== t.id));
+
+      renderMealTypes();
+    };
+
+    actions.append(editBtn, delBtn);
+    card.append(left, actions);
+
+    card.onclick = () => {
+      currentMealTypeId = t.id;
+      qs('#mealtype-title').textContent = t.title;
+      openScreen('screenMealType');
+      renderMeals();
+    };
+
+    mealTypesList.appendChild(card);
+  });
+
+  if (sorted.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'card';
+    empty.innerHTML = `<div class="card-title">Sem tipos ainda</div>
+      <div style="color:#6b7280;font-size:13px;">Carrega no + para adicionar (ex: Pequeno-almoço, Almoço...).</div>`;
+    mealTypesList.appendChild(empty);
+  }
+}
+
+if (qs('#add-mealtype-btn')) {
+  qs('#add-mealtype-btn').onclick = () => {
+    editingMealTypeId = null;
+    qs('#modal-mealtype-title').textContent = 'Novo Tipo de Refeição';
+    qs('#mealtype-name').value = '';
+    openModalX(modalMealType);
+  };
+}
+
+if (qs('#save-mealtype')) {
+  qs('#save-mealtype').onclick = () => {
+    const name = qs('#mealtype-name').value.trim();
+    if (!name) return;
+
+    const types = loadMealTypes();
+
+    if (editingMealTypeId) {
+      const idx = types.findIndex(x => x.id === editingMealTypeId);
+      if (idx !== -1) types[idx].title = name;
+    } else {
+      types.push({ id: uid(), title: name, createdAt: Date.now() });
+    }
+
+    saveMealTypes(types);
+    closeModalX(modalMealType);
+    renderMealTypes();
+  };
+}
+
+/* ---------- REFEIÇÕES DO TIPO ---------- */
+function renderMeals() {
+  if (!mealsList) return;
+
+  const types = loadMealTypes();
+  const t = types.find(x => x.id === currentMealTypeId);
+  if (t) qs('#mealtype-title').textContent = t.title;
+
+  const meals = loadMeals().filter(m => m.mealTypeId === currentMealTypeId);
+
+  mealsList.innerHTML = '';
+  const sorted = [...meals].sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+
+  sorted.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'list-card';
+
+    const left = document.createElement('div');
+    left.className = 'list-left';
+
+    const thumb = document.createElement('div');
+    thumb.className = 'thumb';
+
+    const firstMedia = (m.media || [])[0];
+    if (firstMedia) {
+      if (firstMedia.type.startsWith('image')) {
+        const img = document.createElement('img');
+        img.src = firstMedia.src;
+        thumb.appendChild(img);
+      } else {
+        const vid = document.createElement('video');
+        vid.src = firstMedia.src;
+        vid.muted = true;
+        thumb.appendChild(vid);
+      }
+    } else {
+      thumb.textContent = '🍽️';
+    }
+
+    const titleBox = document.createElement('div');
+
+    const title = document.createElement('div');
+    title.className = 'list-title';
+    title.textContent = m.title;
+
+    const sub = document.createElement('div');
+    sub.className = 'list-sub';
+    sub.textContent = (m.notes || '').trim();
+
+    titleBox.append(title, sub);
+    left.append(thumb, titleBox);
+
+    const actions = document.createElement('div');
+    actions.className = 'list-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-btn';
+    editBtn.textContent = '✏️';
+    editBtn.title = 'Editar refeição';
+    editBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      editingMealId = m.id;
+      qs('#modal-meal-title').textContent = 'Editar Refeição';
+      qs('#meal-name').value = m.title || '';
+      openModalX(modalMeal);
+    };
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'remove-btn';
+    delBtn.textContent = '×';
+    delBtn.title = 'Eliminar refeição';
+    delBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      const ok = confirm('Eliminar esta refeição?');
+      if (!ok) return;
+      saveMeals(loadMeals().filter(x => x.id !== m.id));
+      renderMeals();
+      renderMealTypes();
+    };
+
+    actions.append(editBtn, delBtn);
+    card.append(left, actions);
+
+    card.onclick = () => {
+      currentMealId = m.id;
+      openMealDetail();
+    };
+
+    mealsList.appendChild(card);
+  });
+
+  if (sorted.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'card';
+    empty.innerHTML = `<div class="card-title">Sem refeições</div>
+      <div style="color:#6b7280;font-size:13px;">Carrega no + para adicionar uma refeição.</div>`;
+    mealsList.appendChild(empty);
+  }
+}
+
+if (qs('#back-to-mealtypes')) {
+  qs('#back-to-mealtypes').onclick = () => {
+    openScreen('screen2');
+    renderMealTypes();
+  };
+}
+
+if (qs('#add-meal-btn')) {
+  qs('#add-meal-btn').onclick = () => {
+    editingMealId = null;
+    qs('#modal-meal-title').textContent = 'Nova Refeição';
+    qs('#meal-name').value = '';
+    openModalX(modalMeal);
+  };
+}
+
+if (qs('#save-meal')) {
+  qs('#save-meal').onclick = () => {
+    const title = qs('#meal-name').value.trim();
+    if (!title) return;
+
+    const all = loadMeals();
+
+    if (editingMealId) {
+      const idx = all.findIndex(x => x.id === editingMealId);
+      if (idx !== -1) all[idx].title = title;
+    } else {
+      all.push({
+        id: uid(),
+        mealTypeId: currentMealTypeId,
+        title,
+        notes: '',
+        media: [],
+        createdAt: Date.now()
+      });
+    }
+
+    saveMeals(all);
+    closeModalX(modalMeal);
+    renderMeals();
+    renderMealTypes();
+  };
+}
+
+/* ---------- DETALHE DA REFEIÇÃO ---------- */
+const mealTitleEl = qs('#meal-title');
+const mealNotesEl = qs('#meal-notes');
+const mealMediaGrid = qs('#meal-media-grid');
+const mealMediaInput = qs('#meal-media-input');
+
+function getCurrentMeal() {
+  const all = loadMeals();
+  return all.find(x => x.id === currentMealId) || null;
+}
+
+function saveCurrentMeal(patch) {
+  const all = loadMeals();
+  const idx = all.findIndex(x => x.id === currentMealId);
+  if (idx === -1) return;
+  all[idx] = { ...all[idx], ...patch };
+  saveMeals(all);
+}
+
+function openMealDetail() {
+  const m = getCurrentMeal();
+  if (!m) return;
+
+  if (mealTitleEl) mealTitleEl.textContent = m.title || 'Refeição';
+  if (mealNotesEl) mealNotesEl.value = m.notes || '';
+
+  renderMealMedia();
+  openScreen('screenMeal');
+}
+
+if (qs('#back-to-meals')) {
+  qs('#back-to-meals').onclick = () => {
+    openScreen('screenMealType');
+    renderMeals();
+    renderMealTypes();
+  };
+}
+
+if (qs('#edit-meal-btn')) {
+  qs('#edit-meal-btn').onclick = () => {
+    const m = getCurrentMeal();
+    if (!m) return;
+
+    editingMealId = m.id;
+    qs('#modal-meal-title').textContent = 'Editar Refeição';
+    qs('#meal-name').value = m.title || '';
+    openModalX(modalMeal);
+  };
+}
+
+if (qs('#delete-meal-btn')) {
+  qs('#delete-meal-btn').onclick = () => {
+    const m = getCurrentMeal();
+    if (!m) return;
+
+    const ok = confirm('Eliminar esta refeição?');
+    if (!ok) return;
+
+    saveMeals(loadMeals().filter(x => x.id !== currentMealId));
+    openScreen('screenMealType');
+    renderMeals();
+    renderMealTypes();
+  };
+}
+
+if (mealNotesEl) {
+  mealNotesEl.addEventListener('input', () => {
+    saveCurrentMeal({ notes: mealNotesEl.value });
+    // atualiza lista (subtexto) sem mexer no resto
+    renderMeals();
+  });
+}
+
+/* Upload media no detalhe da refeição */
+if (mealMediaInput) {
+  mealMediaInput.onchange = async () => {
+    const m = getCurrentMeal();
+    if (!m) return;
+
+    const mediaArr = m.media || [];
+
+    for (const file of mealMediaInput.files) {
+      if (file.type.startsWith('image')) {
+        try {
+          const src = await compressImageToDataURL(file, { maxSize: 1280, quality: 0.72 });
+          mediaArr.push({ id: uid(), type: 'image/jpeg', src, notes: '' });
+        } catch (e) {
+          console.error(e);
+          alert('Não foi possível processar esta imagem.');
+        }
+      } else if (file.type.startsWith('video')) {
+        const reader = new FileReader();
+        await new Promise(resolve => {
+          reader.onload = e => {
+            mediaArr.push({ id: uid(), type: file.type, src: e.target.result, notes: '' });
+            resolve();
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    }
+
+    saveCurrentMeal({ media: mediaArr });
+    mealMediaInput.value = '';
+    renderMealMedia();
+    renderMeals();
+    renderMealTypes();
+  };
+}
+
+function renderMealMedia() {
+  const m = getCurrentMeal();
+  if (!m || !mealMediaGrid) return;
+
+  mealMediaGrid.innerHTML = '';
+  const mediaArr = m.media || [];
+
+  mediaArr.forEach(x => {
+    const wrap = document.createElement('div');
+    wrap.className = 'media-item';
+
+    const el = document.createElement(x.type.startsWith('image') ? 'img' : 'video');
+    el.src = x.src;
+    if (!x.type.startsWith('image')) el.muted = true;
+
+    el.onclick = () => openMealMediaLightbox(m.title || 'Media', x.id);
+
+    const del = document.createElement('button');
+    del.textContent = '×';
+    del.onclick = (ev) => {
+      ev.stopPropagation();
+      const updated = mediaArr.filter(z => z.id !== x.id);
+      saveCurrentMeal({ media: updated });
+      renderMealMedia();
+      renderMeals();
+      renderMealTypes();
+    };
+
+    wrap.append(el, del);
+    mealMediaGrid.appendChild(wrap);
+  });
+}
+
+/* LIGHTBOX para media de refeição (reaproveita o mesmo lightbox) */
+let lightboxMealMediaId = null;
+
+function openMealMediaLightbox(title, mediaId) {
+  const m = getCurrentMeal();
+  if (!m) return;
+
+  const media = (m.media || []).find(x => x.id === mediaId);
+  if (!media) return;
+
+  lightboxMealMediaId = mediaId;
+
+  qs('#lightbox').style.display = 'flex';
+  qs('#lightbox-title').innerText = title;
+
+  const img = qs('#lightbox-img');
+  const vid = qs('#lightbox-video');
+  img.style.display = vid.style.display = 'none';
+
+  if (media.type.startsWith('image')) {
+    img.src = media.src;
+    img.style.display = 'block';
+  } else {
+    vid.src = media.src;
+    vid.style.display = 'block';
+  }
+
+  qs('#lightbox-notes').value = media.notes || '';
+  qs('#lightbox-notes').oninput = (e) => {
+    const mealNow = getCurrentMeal();
+    if (!mealNow) return;
+    const arr = mealNow.media || [];
+    const idx = arr.findIndex(x => x.id === lightboxMealMediaId);
+    if (idx !== -1) {
+      arr[idx].notes = e.target.value;
+      saveCurrentMeal({ media: arr });
+    }
+  };
+}
+
+/* INIT extra (mantém o teu init) */
+window.addEventListener('load', () => {
+  renderMealTypes();
+});
