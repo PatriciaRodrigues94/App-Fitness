@@ -111,7 +111,6 @@ function renderDays() {
 
   daysList.innerHTML = '';
 
-  // ORDEM DE ADIÇÃO
   const sorted = [...days].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
   sorted.forEach(day => {
@@ -228,7 +227,6 @@ function renderExercises() {
 
   exList.innerHTML = '';
 
-  // ORDEM DE ADIÇÃO
   const sorted = [...exs].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
   sorted.forEach(ex => {
@@ -522,279 +520,8 @@ function renderExerciseMedia() {
   });
 }
 
-/* ===================== LIGHTBOX MEDIA ===================== */
-let lightboxMediaId = null;
-
-function openMediaLightbox(title, mediaId) {
-  const ex = getCurrentExercise();
-  if (!ex) return;
-
-  const m = (ex.media || []).find(x => x.id === mediaId);
-  if (!m) return;
-
-  lightboxMediaId = mediaId;
-
-  qs('#lightbox').style.display = 'flex';
-  qs('#lightbox-title').innerText = title;
-
-  const img = qs('#lightbox-img');
-  const vid = qs('#lightbox-video');
-  img.style.display = vid.style.display = 'none';
-
-  if (m.type.startsWith('image')) {
-    img.src = m.src;
-    img.style.display = 'block';
-  } else {
-    vid.src = m.src;
-    vid.style.display = 'block';
-  }
-
-  qs('#lightbox-notes').value = m.notes || '';
-  qs('#lightbox-notes').oninput = e => {
-    const exNow = getCurrentExercise();
-    if (!exNow) return;
-    const arr = exNow.media || [];
-    const idx = arr.findIndex(x => x.id === lightboxMediaId);
-    if (idx !== -1) {
-      arr[idx].notes = e.target.value;
-      saveCurrentExercise({ media: arr });
-    }
-  };
-}
-
-qs('.lightbox-close').onclick = () => {
-  qs('#lightbox').style.display = 'none';
-  qs('#lightbox-video').pause();
-  lightboxMediaId = null;
-};
-
-/* ===================== PROGRESSO ===================== */
-let chart;
-let editingId = null;
-
-const loadProgress = () => {
-  const data = JSON.parse(localStorage.getItem('progress') || '[]');
-
-  let changed = false;
-  for (const r of data) {
-    if (!r.id) {
-      r.id = uid();
-      changed = true;
-    }
-  }
-  if (changed) localStorage.setItem('progress', JSON.stringify(data));
-
-  return data;
-};
-
-const saveProgress = d => localStorage.setItem('progress', JSON.stringify(d));
-
-qs('#add-record-btn').onclick = () => {
-  editingId = null;
-  qs('#modal-progress-title').textContent = 'Novo Registo';
-  qs('#progress-form').reset?.();
-  openModal(modalProgress);
-};
-
-qs('#cancel-btn').onclick = () => {
-  editingId = null;
-  closeModal(modalProgress);
-};
-
-qs('#progress-form').onsubmit = e => {
-  e.preventDefault();
-  const data = loadProgress();
-
-  const payload = {
-    date: qs('#date').value,
-    weight: parseFloat(qs('#weight').value),
-    notes: qs('#notes').value
-  };
-
-  if (editingId) {
-    const idx = data.findIndex(x => x.id === editingId);
-    if (idx !== -1) data[idx] = { ...data[idx], ...payload };
-  } else {
-    data.push({ id: uid(), ...payload });
-  }
-
-  saveProgress(data);
-  editingId = null;
-  e.target.reset();
-  closeModal(modalProgress);
-  renderProgress();
-};
-
-function renderProgress() {
-  const list = qs('#progress-list');
-  const data = loadProgress();
-  list.innerHTML = '';
-
-  const sortedDesc = [...data].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  sortedDesc.forEach(r => {
-    const row = document.createElement('div');
-    row.className = 'list-card';
-
-    const left = document.createElement('div');
-    left.className = 'list-left';
-
-    const text = document.createElement('div');
-    text.innerHTML = `<div class="list-title">${r.date}</div>
-                      <div class="list-sub">${r.weight} kg${r.notes ? ` — ${r.notes}` : ''}</div>`;
-
-    left.append(text);
-
-    const actions = document.createElement('div');
-    actions.className = 'list-actions';
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'edit-btn';
-    editBtn.textContent = '✏️';
-    editBtn.title = 'Editar';
-    editBtn.onclick = () => {
-      editingId = r.id;
-      qs('#date').value = r.date || '';
-      qs('#weight').value = (r.weight ?? '');
-      qs('#notes').value = r.notes || '';
-      qs('#modal-progress-title').textContent = 'Editar Registo';
-      openModal(modalProgress);
-    };
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'remove-btn';
-    delBtn.textContent = '×';
-    delBtn.title = 'Eliminar';
-    delBtn.onclick = () => {
-      const fresh = loadProgress();
-      const idx = fresh.findIndex(x => x.id === r.id);
-      if (idx !== -1) {
-        fresh.splice(idx, 1);
-        saveProgress(fresh);
-        renderProgress();
-      }
-    };
-
-    actions.append(editBtn, delBtn);
-    row.append(left, actions);
-    list.appendChild(row);
-  });
-
-  const sortedAsc = [...data].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
-
-  const sumInitial = qs('#sum-initial');
-  const sumCurrent = qs('#sum-current');
-  const sumDiff = qs('#sum-diff');
-
-  if (sumInitial && sumCurrent && sumDiff) {
-    if (sortedAsc.length === 0) {
-      sumInitial.textContent = '—';
-      sumCurrent.textContent = '—';
-      sumDiff.textContent = '—';
-    } else {
-      const initial = sortedAsc[0].weight;
-      const current = sortedAsc[sortedAsc.length - 1].weight;
-      const diff = current - initial;
-
-      sumInitial.textContent = `${initial.toFixed(1)} kg`;
-      sumCurrent.textContent = `${current.toFixed(1)} kg`;
-      sumDiff.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} kg`;
-    }
-  }
-
-  drawChart(sortedAsc);
-}
-
-function drawChart(data) {
-  const canvas = qs('#weightChart');
-  const ctx = canvas.getContext('2d');
-  if (chart) chart.destroy();
-
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: data.map(d => d.date),
-      datasets: [{
-        label: 'Peso (kg)',
-        data: data.map(d => d.weight),
-        tension: 0.35,
-        borderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 4,
-        fill: false
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-
-      layout: {
-        padding: { top: 8, right: 10, bottom: 8, left: 10 }
-      },
-
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: {
-            boxWidth: 14,
-            boxHeight: 10,
-            padding: 10,
-            font: { size: 12, weight: '600' }
-          }
-        },
-        tooltip: {
-          titleFont: { size: 12, weight: '700' },
-          bodyFont: { size: 12 }
-        }
-      },
-
-      scales: {
-        x: {
-          grid: {
-            color: 'rgba(0,0,0,0.08)',
-            borderDash: [3, 3]
-          },
-          ticks: {
-            font: { size: 10 },
-            maxRotation: 45,
-            minRotation: 45
-          }
-        },
-        y: {
-          grid: {
-            color: 'rgba(0,0,0,0.08)',
-            borderDash: [3, 3]
-          },
-          ticks: {
-            font: { size: 10 },
-            callback: (v) => Number(v).toFixed(1)
-          },
-          title: {
-            display: true,
-            text: 'Peso (kg)',
-            font: { size: 11, weight: '600' },
-            padding: { top: 0, bottom: 6 }
-          }
-        }
-      }
-    }
-  });
-}
-
-/* ===================== INIT ===================== */
-window.onload = () => {
-  renderDays();
-  renderProgress();
-
-};
-
 /* =========================================================
-   PLANO ALIMENTAR (NOVO) — sem mexer no que já existe
+   PLANO ALIMENTAR (NOVO)
 ========================================================= */
 
 /* STORAGE (ALIMENTAÇÃO) */
@@ -1157,7 +884,6 @@ if (qs('#delete-meal-btn')) {
 if (mealNotesEl) {
   mealNotesEl.addEventListener('input', () => {
     saveCurrentMeal({ notes: mealNotesEl.value });
-    // atualiza lista (subtexto) sem mexer no resto
     renderMeals();
   });
 }
@@ -1232,47 +958,390 @@ function renderMealMedia() {
   });
 }
 
-/* LIGHTBOX para media de refeição (reaproveita o mesmo lightbox) */
-let lightboxMealMediaId = null;
+/* ===================== LIGHTBOX: GALERIA (SWIPE + CLICK) ===================== */
+const lb = {
+  open: false,
+  title: '',
+  items: [],
+  index: 0,
+  saveNotes: null
+};
 
-function openMealMediaLightbox(title, mediaId) {
-  const m = getCurrentMeal();
-  if (!m) return;
-
-  const media = (m.media || []).find(x => x.id === mediaId);
-  if (!media) return;
-
-  lightboxMealMediaId = mediaId;
-
-  qs('#lightbox').style.display = 'flex';
-  qs('#lightbox-title').innerText = title;
-
+function lbShow() {
+  const box = qs('#lightbox');
   const img = qs('#lightbox-img');
   const vid = qs('#lightbox-video');
-  img.style.display = vid.style.display = 'none';
+  const notesEl = qs('#lightbox-notes');
 
-  if (media.type.startsWith('image')) {
-    img.src = media.src;
+  const item = lb.items[lb.index];
+  if (!item) return;
+
+  box.style.display = 'flex';
+  qs('#lightbox-title').innerText = lb.title || '';
+
+  img.style.display = 'none';
+  vid.style.display = 'none';
+  vid.pause?.();
+
+  if (item.type.startsWith('image')) {
+    img.src = item.src;
     img.style.display = 'block';
   } else {
-    vid.src = media.src;
+    vid.src = item.src;
     vid.style.display = 'block';
   }
 
-  qs('#lightbox-notes').value = media.notes || '';
-  qs('#lightbox-notes').oninput = (e) => {
-    const mealNow = getCurrentMeal();
-    if (!mealNow) return;
-    const arr = mealNow.media || [];
-    const idx = arr.findIndex(x => x.id === lightboxMealMediaId);
-    if (idx !== -1) {
-      arr[idx].notes = e.target.value;
-      saveCurrentMeal({ media: arr });
-    }
+  notesEl.value = item.notes || '';
+  notesEl.oninput = (e) => {
+    const val = e.target.value;
+    lb.items[lb.index].notes = val;
+    if (typeof lb.saveNotes === 'function') lb.saveNotes(item.id, val);
   };
+
+  lb.open = true;
 }
 
-/* INIT extra (mantém o teu init) */
-window.addEventListener('load', () => {
-  renderMealTypes();
-});
+function lbNext() {
+  if (!lb.items.length) return;
+  lb.index = (lb.index + 1) % lb.items.length;
+  lbShow();
+}
+
+function lbPrev() {
+  if (!lb.items.length) return;
+  lb.index = (lb.index - 1 + lb.items.length) % lb.items.length;
+  lbShow();
+}
+
+function lbBindMediaClickNext() {
+  const img = qs('#lightbox-img');
+  const vid = qs('#lightbox-video');
+  if (img) img.onclick = () => lbNext();
+  if (vid) vid.onclick = () => lbNext();
+}
+
+(function lbEnableSwipe(){
+  const box = qs('#lightbox');
+  if (!box) return;
+
+  let startX = 0;
+  let startY = 0;
+  let touching = false;
+
+  box.addEventListener('touchstart', (e) => {
+    if (!lb.open) return;
+    const t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    touching = true;
+  }, { passive: true });
+
+  box.addEventListener('touchend', (e) => {
+    if (!lb.open || !touching) return;
+    touching = false;
+
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      if (dx < 0) lbNext();
+      else lbPrev();
+    }
+  }, { passive: true });
+})();
+
+(function lbBindNavButtons(){
+  const prevBtn = qs('.lightbox-nav.prev');
+  const nextBtn = qs('.lightbox-nav.next');
+  if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); lbPrev(); };
+  if (nextBtn) nextBtn.onclick = (e) => { e.stopPropagation(); lbNext(); };
+})();
+
+lbBindMediaClickNext();
+
+/* ===================== LIGHTBOX TREINOS (ABRIR COM LISTA) ===================== */
+function openMediaLightbox(title, mediaId) {
+  const ex = getCurrentExercise();
+  if (!ex) return;
+
+  const arr = ex.media || [];
+  const idx = arr.findIndex(x => x.id === mediaId);
+  if (idx === -1) return;
+
+  lb.title = title;
+  lb.items = arr.map(x => ({ ...x }));
+  lb.index = idx;
+
+  lb.saveNotes = (id, value) => {
+    const exNow = getCurrentExercise();
+    if (!exNow) return;
+    const media = exNow.media || [];
+    const i = media.findIndex(x => x.id === id);
+    if (i !== -1) {
+      media[i].notes = value;
+      saveCurrentExercise({ media });
+    }
+  };
+
+  lbShow();
+}
+
+/* ===================== LIGHTBOX REFEIÇÕES (ABRIR COM LISTA) ===================== */
+function openMealMediaLightbox(title, mediaId) {
+  const meal = getCurrentMeal();
+  if (!meal) return;
+
+  const arr = meal.media || [];
+  const idx = arr.findIndex(x => x.id === mediaId);
+  if (idx === -1) return;
+
+  lb.title = title;
+  lb.items = arr.map(x => ({ ...x }));
+  lb.index = idx;
+
+  lb.saveNotes = (id, value) => {
+    const mealNow = getCurrentMeal();
+    if (!mealNow) return;
+    const media = mealNow.media || [];
+    const i = media.findIndex(x => x.id === id);
+    if (i !== -1) {
+      media[i].notes = value;
+      saveCurrentMeal({ media });
+    }
+  };
+
+  lbShow();
+}
+
+/* FECHAR LIGHTBOX */
+qs('.lightbox-close').onclick = () => {
+  qs('#lightbox').style.display = 'none';
+  qs('#lightbox-video').pause();
+  lb.open = false;
+};
+
+/* ===================== PROGRESSO ===================== */
+let chart;
+let editingId = null;
+
+const loadProgress = () => {
+  const data = JSON.parse(localStorage.getItem('progress') || '[]');
+
+  let changed = false;
+  for (const r of data) {
+    if (!r.id) {
+      r.id = uid();
+      changed = true;
+    }
+  }
+  if (changed) localStorage.setItem('progress', JSON.stringify(data));
+
+  return data;
+};
+
+const saveProgress = d => localStorage.setItem('progress', JSON.stringify(d));
+
+qs('#add-record-btn').onclick = () => {
+  editingId = null;
+  qs('#modal-progress-title').textContent = 'Novo Registo';
+  qs('#progress-form').reset?.();
+  openModal(modalProgress);
+};
+
+qs('#cancel-btn').onclick = () => {
+  editingId = null;
+  closeModal(modalProgress);
+};
+
+qs('#progress-form').onsubmit = e => {
+  e.preventDefault();
+  const data = loadProgress();
+
+  const payload = {
+    date: qs('#date').value,
+    weight: parseFloat(qs('#weight').value),
+    notes: qs('#notes').value
+  };
+
+  if (editingId) {
+    const idx = data.findIndex(x => x.id === editingId);
+    if (idx !== -1) data[idx] = { ...data[idx], ...payload };
+  } else {
+    data.push({ id: uid(), ...payload });
+  }
+
+  saveProgress(data);
+  editingId = null;
+  e.target.reset();
+  closeModal(modalProgress);
+  renderProgress();
+};
+
+function renderProgress() {
+  const list = qs('#progress-list');
+  const data = loadProgress();
+  list.innerHTML = '';
+
+  const sortedDesc = [...data].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  sortedDesc.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'list-card';
+
+    const left = document.createElement('div');
+    left.className = 'list-left';
+
+    const text = document.createElement('div');
+    text.innerHTML = `<div class="list-title">${r.date}</div>
+                      <div class="list-sub">${r.weight} kg${r.notes ? ` — ${r.notes}` : ''}</div>`;
+
+    left.append(text);
+
+    const actions = document.createElement('div');
+    actions.className = 'list-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-btn';
+    editBtn.textContent = '✏️';
+    editBtn.title = 'Editar';
+    editBtn.onclick = () => {
+      editingId = r.id;
+      qs('#date').value = r.date || '';
+      qs('#weight').value = (r.weight ?? '');
+      qs('#notes').value = r.notes || '';
+      qs('#modal-progress-title').textContent = 'Editar Registo';
+      openModal(modalProgress);
+    };
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'remove-btn';
+    delBtn.textContent = '×';
+    delBtn.title = 'Eliminar';
+    delBtn.onclick = () => {
+      const fresh = loadProgress();
+      const idx = fresh.findIndex(x => x.id === r.id);
+      if (idx !== -1) {
+        fresh.splice(idx, 1);
+        saveProgress(fresh);
+        renderProgress();
+      }
+    };
+
+    actions.append(editBtn, delBtn);
+    row.append(left, actions);
+    list.appendChild(row);
+  });
+
+  const sortedAsc = [...data].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  const sumInitial = qs('#sum-initial');
+  const sumCurrent = qs('#sum-current');
+  const sumDiff = qs('#sum-diff');
+
+  if (sumInitial && sumCurrent && sumDiff) {
+    if (sortedAsc.length === 0) {
+      sumInitial.textContent = '—';
+      sumCurrent.textContent = '—';
+      sumDiff.textContent = '—';
+    } else {
+      const initial = sortedAsc[0].weight;
+      const current = sortedAsc[sortedAsc.length - 1].weight;
+      const diff = current - initial;
+
+      sumInitial.textContent = `${initial.toFixed(1)} kg`;
+      sumCurrent.textContent = `${current.toFixed(1)} kg`;
+      sumDiff.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} kg`;
+    }
+  }
+
+  drawChart(sortedAsc);
+}
+
+function drawChart(data) {
+  const canvas = qs('#weightChart');
+  const ctx = canvas.getContext('2d');
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.date),
+      datasets: [{
+        label: 'Peso (kg)',
+        data: data.map(d => d.weight),
+        tension: 0.35,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 4,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
+      layout: {
+        padding: { top: 8, right: 10, bottom: 8, left: 10 }
+      },
+
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            boxWidth: 14,
+            boxHeight: 10,
+            padding: 10,
+            font: { size: 12, weight: '600' }
+          }
+        },
+        tooltip: {
+          titleFont: { size: 12, weight: '700' },
+          bodyFont: { size: 12 }
+        }
+      },
+
+      scales: {
+        x: {
+          grid: {
+            color: 'rgba(0,0,0,0.08)',
+            borderDash: [3, 3]
+          },
+          ticks: {
+            font: { size: 10 },
+            maxRotation: 45,
+            minRotation: 45
+          }
+        },
+        y: {
+          grid: {
+            color: 'rgba(0,0,0,0.08)',
+            borderDash: [3, 3]
+          },
+          ticks: {
+            font: { size: 10 },
+            callback: (v) => Number(v).toFixed(1)
+          },
+          title: {
+            display: true,
+            text: 'Peso (kg)',
+            font: { size: 11, weight: '600' },
+            padding: { top: 0, bottom: 6 }
+          }
+        }
+      }
+    }
+  });
+}
+
+/* ===================== INIT ===================== */
+window.onload = () => {
+  renderDays();
+  renderProgress();
+  renderMealTypes(); // plano alimentar
+};
