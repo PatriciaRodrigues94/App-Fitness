@@ -118,6 +118,33 @@ button:active{ transform:scale(0.97); }
   padding:0;
 }
 
+/* ===== NOVO: botões prev/next no lightbox ===== */
+.lightbox-nav{
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(17,24,39,0.55);
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.lightbox-nav.prev{ left: 10px; }
+.lightbox-nav.next{ right: 10px; }
+
+.lightbox-nav:active{
+  transform: translateY(-50%) scale(0.98);
+}
+
 /* ===================== ÍCONES EDITAR/APAGAR ===================== */
 .edit-btn,
 .remove-btn{
@@ -444,7 +471,8 @@ button:active{ transform:scale(0.97); }
 }
 
 /* ===================== DETALHE EXERCÍCIO ===================== */
-#ex-notes{
+#ex-notes,
+#meal-notes{
   width:100%;
   padding:10px;
   border-radius:10px;
@@ -540,7 +568,7 @@ button:active{ transform:scale(0.97); }
 
 .progress-form-row{
   display:grid;
-  grid-template-columns: 1fr 92px; /* data grande | peso pequeno */
+  grid-template-columns: 1fr 92px;
   gap:10px;
   align-items:center;
 }
@@ -557,72 +585,6 @@ button:active{ transform:scale(0.97); }
 #progress-form textarea{
   min-height:120px;
   resize:vertical;
-}
-
-/* ===================== PROGRESSO: igual ao visual dos TreINOS ===================== */
-
-/* No Progresso, o bloco de texto deve ter largura fixa (como nos dias) */
-#screen3 .list-left > :nth-child(1){
-  width: min(240px, 70vw);
-  max-width: min(240px, 70vw);
-  min-width: 0;
-}
-
-/* No Progresso, o subtexto não deve ter altura "fixa de 2 linhas" como os dias.
-   Permite 1–2 linhas (peso + notas) e corta o excesso com reticências. */
-#screen3 .list-sub{
-  min-height: 16px;
-  line-height: 16px;
-
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-
-  overflow: hidden;
-}
-
-/* ===================== PROGRESSO: acabamento igual aos TREINOS ===================== */
-
-/* 1) “Histórico de Registos” com o mesmo alinhamento/respiração dos treinos */
-#screen3 .section-title{
-  margin-top: 14px;   /* dá um respiro igual ao resto */
-  margin-bottom: 6px;
-}
-
-/* 2) Lista do progresso com a mesma “cadência” visual das listas dos treinos */
-#screen3 #progress-list.progress-list{
-  margin-top: 0;
-  margin-bottom: 14px;
-}
-
-/* 3) No Progresso, o bloco de texto dos registos fica com largura fixa (igual aos dias) */
-#screen3 .list-left > :nth-child(1){
-  width: min(240px, 70vw);
-  max-width: min(240px, 70vw);
-  min-width: 0;
-}
-
-/* 4) Subtexto (peso + notas) igual ao estilo “clean” do treino:
-      até 2 linhas e não força altura fixa como nos DIAS */
-#screen3 .list-sub{
-  min-height: 16px;
-  line-height: 16px;
-
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-
-  overflow: hidden;
-}
-
-/* 5) Opcional: o card “Resumo” ficar mais parecido ao spacing do resto */
-#screen3 .summary-grid{
-  margin-top: 2px;
-}
-
-/* 6) Opcional: deixar o gráfico e resumo com o mesmo ritmo de cards */
-#screen3 .card{
-  margin: 10px 0;
 }
 
 /* ===================== HOME (novo layout) ===================== */
@@ -652,7 +614,7 @@ button:active{ transform:scale(0.97); }
 
 .home-card{
   background:#ffffff;
-  border: 1px solid #e5e7eb;       /* linha fininha, igual aos cards */
+  border: 1px solid #e5e7eb;
   border-radius:14px;
   box-shadow: 0 4px 14px rgba(0,0,0,0.06);
   padding: 18px 16px;
@@ -699,57 +661,4 @@ button:active{ transform:scale(0.97); }
 /* Progresso: não meter margin-bottom nos inputs da linha data/peso */
 #modal-progress .progress-form-row input{
   margin-bottom: 0;
-}
-
-/* ===================== SPLASH (logo ao abrir) ===================== */
-.splash{
-  position: fixed;
-  inset: 0;
-  background: #111827;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.splash-inner{
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 20px;
-}
-
-.splash-logo{
-  width: 96px;
-  height: 96px;
-  border-radius: 22px;
-  background: rgba(255,255,255,0.06);
-  padding: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-}
-
-.splash-title{
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 16px;
-  letter-spacing: 0.2px;
-  opacity: 0.95;
-}
-
-.splash.hide{
-  animation: splashFade 0.45s ease forwards;
-}
-
-@keyframes splashFade{
-  to { opacity: 0; visibility: hidden; }
-
-}
-
-#meal-notes{
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  border:1px solid #e5e7eb;
-  font-family:inherit;
 }
