@@ -1,13 +1,11 @@
-alert("JS carregou ✅");
-
 /* =========================================================
-   App-Fitness — script.js (PARTE 1/4)
-   - Helpers + Navegação
-   - Storage (Treinos/Alimentação/Progresso)
-   - MediaStore (poupa espaço)
-   - Compressão de imagens
-   - Modais base
-   - Treino: Dias + Exercícios (lista)
+   App-Fitness — script.js (ALL-IN-ONE)
+   - Mantém as funcionalidades antigas (Treino/Alimentação/Progresso)
+   - NOVO: MediaStore para poupar espaço (refs em vez de duplicar src)
+   - Export/Import com/sem media
+   - Limpeza de media não usado
+   - Migração automática do formato antigo (inline src) para MediaStore
+   - Init robusto (mobile/PWA)
 ========================================================= */
 
 const qs = s => document.querySelector(s);
@@ -77,7 +75,7 @@ const saveProgress = d => localStorage.setItem(PROGRESS_KEY, JSON.stringify(d));
 
 /* =========================================================
    MEDIA STORE (NOVO)
-   - guarda as fotos 1x só (poupa espaço)
+   - guarda as fotos/vídeos 1x só (poupa espaço)
    - exercícios/refeições guardam refs: {id, type, ref, notes}
 ========================================================= */
 const MEDIA_KEY = 'ft_media_store';
@@ -369,17 +367,18 @@ function renderExercises() {
     const thumb = document.createElement('div');
     thumb.className = 'thumb';
 
-    const firstMediaRef = (ex.media || [])[0]?.ref;
-    const firstMedia = firstMediaRef ? mediaStoreGet(firstMediaRef) : null;
+    // ✅ NOVO: thumb vem do MediaStore via ref
+    const firstRef = (ex.media || [])[0]?.ref;
+    const stored = firstRef ? mediaStoreGet(firstRef) : null;
 
-    if (firstMedia) {
-      if (firstMedia.type.startsWith('image')) {
+    if (stored) {
+      if (stored.type.startsWith('image')) {
         const img = document.createElement('img');
-        img.src = firstMedia.src;
+        img.src = stored.src;
         thumb.appendChild(img);
       } else {
         const vid = document.createElement('video');
-        vid.src = firstMedia.src;
+        vid.src = stored.src;
         vid.muted = true;
         thumb.appendChild(vid);
       }
@@ -437,7 +436,7 @@ function renderExercises() {
 
     card.onclick = () => {
       currentExId = ex.id;
-      openExerciseDetail(); // (definido na PARTE 2)
+      openExerciseDetail();
     };
 
     exList.appendChild(card);
@@ -490,7 +489,7 @@ if (qs('#save-ex')) {
         name,
         notes: quick,
         done: false,
-        media: [], // refs: [{id, type, ref, notes}]
+        media: [], // ✅ refs: [{id, type, ref, notes}]
         createdAt: Date.now()
       });
     }
@@ -501,12 +500,6 @@ if (qs('#save-ex')) {
     renderDays();
   };
 }
-
-/* =========================================================
-   App-Fitness — script.js (PARTE 2/4)
-   - Treino: Detalhe do Exercício (upload + notas + concluído)
-   - Alimentação: Tipos + Refeições (listas) + modais base
-========================================================= */
 
 /* ===================== TREINO: DETALHE DO EXERCÍCIO ===================== */
 const exTitle = qs('#ex-title');
@@ -611,7 +604,6 @@ if (exMediaInput) {
           alert('Não foi possível processar esta imagem.');
         }
       } else if (file.type.startsWith('video')) {
-        // (fica preparado)
         const reader = new FileReader();
         await new Promise(resolve => {
           reader.onload = e => {
@@ -641,17 +633,17 @@ function renderExerciseMedia() {
   const mediaArr = ex.media || [];
 
   mediaArr.forEach(m => {
-    const wrap = document.createElement('div');
-    wrap.className = 'media-item';
-
     const stored = m?.ref ? mediaStoreGet(m.ref) : null;
     if (!stored) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'media-item';
 
     const el = document.createElement(stored.type.startsWith('image') ? 'img' : 'video');
     el.src = stored.src;
     if (!stored.type.startsWith('image')) el.muted = true;
 
-    el.onclick = () => openMediaLightbox(ex.name || 'Media', m.id); // PARTE 4
+    el.onclick = () => openMediaLightbox(ex.name || 'Media', m.id);
 
     const del = document.createElement('button');
     del.textContent = '×';
@@ -674,17 +666,14 @@ function renderExerciseMedia() {
 }
 
 /* =========================================================
-   PLANO ALIMENTAR (listas)
+   PLANO ALIMENTAR — estado/modais
 ========================================================= */
-
-/* ESTADO (ALIMENTAÇÃO) */
 let currentMealTypeId = null;
 let currentMealId = null;
 
 let editingMealTypeId = null;
 let editingMealId = null;
 
-/* ELEMENTOS */
 const mealTypesList = qs('#mealtypes-list');
 const mealsList = qs('#meals-list');
 
@@ -770,7 +759,7 @@ function renderMealTypes() {
       currentMealTypeId = t.id;
       qs('#mealtype-title').textContent = t.title;
       openScreen('screenMealType');
-      renderMeals(); // PARTE 3
+      renderMeals();
     };
 
     mealTypesList.appendChild(card);
@@ -814,12 +803,6 @@ if (qs('#save-mealtype')) {
   };
 }
 
-/* =========================================================
-   App-Fitness — script.js (PARTE 3/4)
-   - Alimentação (Refeições + detalhe + upload com MediaStore)
-   - Lightbox (galeria com swipe + setas + click)
-========================================================= */
-
 /* ---------- REFEIÇÕES DO TIPO ---------- */
 function renderMeals() {
   if (!mealsList) return;
@@ -843,22 +826,20 @@ function renderMeals() {
     const thumb = document.createElement('div');
     thumb.className = 'thumb';
 
-    const firstRef = (m.media || [])[0];
-    if (firstRef?.ref) {
-      const stored = mediaStoreGet(firstRef.ref);
-      if (stored) {
-        if (stored.type.startsWith('image')) {
-          const img = document.createElement('img');
-          img.src = stored.src;
-          thumb.appendChild(img);
-        } else {
-          const vid = document.createElement('video');
-          vid.src = stored.src;
-          vid.muted = true;
-          thumb.appendChild(vid);
-        }
+    // ✅ NOVO: thumb vem do MediaStore via ref
+    const firstRef = (m.media || [])[0]?.ref;
+    const stored = firstRef ? mediaStoreGet(firstRef) : null;
+
+    if (stored) {
+      if (stored.type.startsWith('image')) {
+        const img = document.createElement('img');
+        img.src = stored.src;
+        thumb.appendChild(img);
       } else {
-        thumb.textContent = '🍽️';
+        const vid = document.createElement('video');
+        vid.src = stored.src;
+        vid.muted = true;
+        thumb.appendChild(vid);
       }
     } else {
       thumb.textContent = '🍽️';
@@ -959,7 +940,7 @@ if (qs('#save-meal')) {
         mealTypeId: currentMealTypeId,
         title,
         notes: '',
-        media: [], // [{id, type, ref, notes}]
+        media: [], // ✅ refs: [{id, type, ref, notes}]
         createdAt: Date.now()
       });
     }
@@ -1091,17 +1072,17 @@ function renderMealMedia() {
   const mediaArr = m.media || [];
 
   mediaArr.forEach(x => {
-    const wrap = document.createElement('div');
-    wrap.className = 'media-item';
-
     const stored = x?.ref ? mediaStoreGet(x.ref) : null;
     if (!stored) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'media-item';
 
     const el = document.createElement(stored.type.startsWith('image') ? 'img' : 'video');
     el.src = stored.src;
     if (!stored.type.startsWith('image')) el.muted = true;
 
-    el.onclick = () => openMealMediaLightbox(m.title || 'Media', x.id); // PARTE 4
+    el.onclick = () => openMealMediaLightbox(m.title || 'Media', x.id);
 
     const del = document.createElement('button');
     del.textContent = '×';
@@ -1226,15 +1207,8 @@ function lbBindMediaClickNext() {
 lbBindMediaClickNext();
 
 /* =========================================================
-   App-Fitness — script.js (PARTE 4/4) ✅ CORRIGIDA
-   - Lightbox open (treino + alimentação) COM MediaStore (refs)
-   - Progresso (SEM duplicar loadProgress/saveProgress)
-   - Menu ⋯ + Exportar/Importar (pergunta "com fotos?")
-   - Limpeza (gerir espaço): limpar não usados + stats
-   - MIGRAÇÃO (inline -> MediaStore) + INIT
+   LIGHTBOX OPEN (treino + alimentação) COM MediaStore (refs)
 ========================================================= */
-
-/* ===================== LIGHTBOX TREINOS (ABRIR COM LISTA) ===================== */
 function openMediaLightbox(title, mediaLocalId) {
   const ex = getCurrentExercise();
   if (!ex) return;
@@ -1273,7 +1247,6 @@ function openMediaLightbox(title, mediaLocalId) {
   lbShow();
 }
 
-/* ===================== LIGHTBOX REFEIÇÕES (ABRIR COM LISTA) ===================== */
 function openMealMediaLightbox(title, mediaLocalId) {
   const meal = getCurrentMeal();
   if (!meal) return;
@@ -1323,10 +1296,9 @@ if (qs('.lightbox-close')) {
   };
 }
 
-/* ===================== PROGRESSO =====================
-   ⚠️ NÃO declarar loadProgress/saveProgress aqui
-   (já existem na PARTE 1)
-===================================================== */
+/* =========================================================
+   PROGRESSO
+========================================================= */
 let chart;
 let editingId = null;
 
@@ -1514,12 +1486,12 @@ const moreMenu = qs('#more-menu');
 
 const openExportBtn = qs('#open-export');
 const openImportBtn = qs('#open-import');
-const openCleanBtn  = qs('#open-clean'); // (HTML tem de ter)
+const openCleanBtn  = qs('#open-clean');
 const closeMoreBtn = qs('#close-more');
 
 const modalExport = qs('#modal-export');
 const modalImport = qs('#modal-import');
-const modalClean  = qs('#modal-clean');  // (HTML tem de ter)
+const modalClean  = qs('#modal-clean');
 
 /* --- helpers export/import --- */
 function safeParseJSON(text) {
@@ -1587,28 +1559,17 @@ function buildExportPayload(scope, includeMedia) {
   };
 
   if (scope === 'all' || scope === 'train') {
-    payload.data.train = {
-      days: loadDays(),
-      exercises: loadExercises()
-    };
+    payload.data.train = { days: loadDays(), exercises: loadExercises() };
   }
   if (scope === 'all' || scope === 'food') {
-    payload.data.food = {
-      mealtypes: loadMealTypes(),
-      meals: loadMeals()
-    };
+    payload.data.food = { mealtypes: loadMealTypes(), meals: loadMeals() };
   }
   if (scope === 'all' || scope === 'progress') {
-    payload.data.progress = {
-      records: loadProgress()
-    };
+    payload.data.progress = { records: loadProgress() };
   }
 
-  // ✅ CORRETO: store vem do loadMediaStore() (formato {version, items})
   if (includeMedia) {
-    payload.data.media = {
-      store: loadMediaStore()
-    };
+    payload.data.media = { store: loadMediaStore() };
   }
 
   return payload;
@@ -1740,7 +1701,7 @@ function mergeArrayById(existing, incoming, { remap = null } = {}) {
   return { merged: out, idMap };
 }
 
-/* ===== MediaStore import helpers (CORRIGIDO p/ formato {version, items}) ===== */
+/* ===== MediaStore import helpers ===== */
 function mergeMediaStoreReplace(incomingStore) {
   if (!incomingStore || typeof incomingStore !== 'object') return;
 
@@ -1916,7 +1877,6 @@ if (impAddBtn) impAddBtn.onclick = () => doImport('add');
 
 /* =========================================================
    LIMPEZA: remover media não usados
-   (CORRIGIDO: store = {version, items})
 ========================================================= */
 function approxBytesFromDataURL(dataUrl) {
   if (!dataUrl || typeof dataUrl !== 'string') return 0;
@@ -1974,7 +1934,6 @@ function cleanUnusedMedia({ dryRun = true } = {}) {
   return { unusedCount: unused.length, before, after };
 }
 
-/* ===== UI da limpeza (requer HTML do modal clean) ===== */
 function updateCleanModalInfo() {
   const info = qs('#clean-info');
   if (!info) return;
@@ -1996,7 +1955,6 @@ function updateCleanModalInfo() {
   `;
 }
 
-/* Abrir/fechar modal de limpeza */
 if (openCleanBtn) openCleanBtn.onclick = () => {
   hideMoreMenu();
   updateCleanModalInfo();
@@ -2031,18 +1989,15 @@ if (qs('#do-clean')) {
 
 /* =========================================================
    MIGRAÇÃO: converter dados antigos (inline src) p/ MediaStore
-   - executa 1x e marca flag
 ========================================================= */
 const MIGRATION_KEY = 'ft_media_migrated_v1';
 
 function migrateInlineMediaToStoreOnce() {
   if (localStorage.getItem(MIGRATION_KEY) === '1') return;
 
-  // garantir store
   const store = loadMediaStore();
   if (!store.items) store.items = {};
 
-  // helper: adiciona ao store e devolve id
   function addToStore(type, src) {
     const id = uid();
     store.items[id] = { id, type, src, createdAt: Date.now() };
@@ -2051,14 +2006,12 @@ function migrateInlineMediaToStoreOnce() {
 
   let changed = false;
 
-  // --- exercícios
+  // exercícios (antigo: [{id,type,src,notes}])
   const exs = loadExercises();
   exs.forEach(ex => {
     const arr = ex.media || [];
-    // se já for formato novo (tem ref), ignorar
     if (arr.some(m => m && typeof m === 'object' && 'ref' in m)) return;
 
-    // formato antigo: [{id,type,src,notes}]
     const newArr = arr
       .filter(m => m && m.src)
       .map(m => {
@@ -2070,7 +2023,7 @@ function migrateInlineMediaToStoreOnce() {
     ex.media = newArr;
   });
 
-  // --- refeições
+  // refeições (antigo: [{id,type,src,notes}])
   const meals = loadMeals();
   meals.forEach(meal => {
     const arr = meal.media || [];
@@ -2096,13 +2049,17 @@ function migrateInlineMediaToStoreOnce() {
   localStorage.setItem(MIGRATION_KEY, '1');
 }
 
-/* ===================== INIT ===================== */
-window.onload = () => {
-  migrateInlineMediaToStoreOnce();
+/* =========================================================
+   INIT (robusto em mobile/PWA)
+========================================================= */
+function initApp() {
+  try { migrateInlineMediaToStoreOnce(); } catch (e) { console.error('Migration error', e); }
 
-  renderDays();
-  renderProgress();
-  renderMealTypes();
-};
+  try { renderDays(); } catch (e) { console.error('renderDays error', e); }
+  try { renderProgress(); } catch (e) { console.error('renderProgress error', e); }
+  try { renderMealTypes(); } catch (e) { console.error('renderMealTypes error', e); }
+}
 
-
+// iOS/Safari às vezes precisa disto:
+document.addEventListener('DOMContentLoaded', initApp);
+window.addEventListener('load', initApp);
