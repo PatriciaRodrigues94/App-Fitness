@@ -711,7 +711,7 @@ if (qs('#save-mealtype')) {
     closeModalX(modalMealType);
     renderMealTypes();
   };
-      }
+}
 
 /* =========================================================
    App-Fitness — script.js (PARTE 3/4)
@@ -1735,3 +1735,4 @@ window.onload = () => {
   renderProgress();
   renderMealTypes();
 };
+
