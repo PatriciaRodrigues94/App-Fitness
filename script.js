@@ -1369,23 +1369,6 @@ if (qs('.lightbox-close')) {
 let chart;
 let editingId = null;
 
-const loadProgress = () => {
-  const data = JSON.parse(localStorage.getItem('progress') || '[]');
-
-  let changed = false;
-  for (const r of data) {
-    if (!r.id) {
-      r.id = uid();
-      changed = true;
-    }
-  }
-  if (changed) localStorage.setItem('progress', JSON.stringify(data));
-
-  return data;
-};
-
-const saveProgress = d => localStorage.setItem('progress', JSON.stringify(d));
-
 if (qs('#add-record-btn')) {
   qs('#add-record-btn').onclick = () => {
     editingId = null;
@@ -2109,3 +2092,4 @@ window.onload = () => {
   renderProgress();
   renderMealTypes();
 };
+
