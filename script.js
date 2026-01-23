@@ -498,7 +498,7 @@ if (qs('#save-ex')) {
     renderExercises();
     renderDays();
   };
-     }
+}
 
 /* =========================================================
    App-Fitness — script.js (PARTE 2/4)
@@ -2102,3 +2102,4 @@ window.onload = () => {
   renderProgress();
   renderMealTypes();
 };
+
