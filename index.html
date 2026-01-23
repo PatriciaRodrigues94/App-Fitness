@@ -1,388 +1,414 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>App-Fitness</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#111827" />
+  <!-- (Opcional) teu CSS -->
+  <link rel="stylesheet" href="styles.css" />
 
-  <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js (necessário para o Progresso) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- ✅ IMPORTANTE: defer para garantir que o DOM já existe quando o JS corre -->
+  <script src="script.js" defer></script>
 </head>
+
 <body>
 
-  <!-- HOME -->
-  <div id="home" class="screen active">
+  <!-- ============ TOP BAR / HOME ============ -->
+  <header class="topbar">
+    <div class="topbar-title">App-Fitness</div>
 
-    <!-- TOP BAR -->
-    <div class="home-topbar">
-      <div></div>
-      <button id="more-btn" class="more-btn" aria-label="Mais opções">⋯</button>
-    </div>
+    <!-- menu ⋯ -->
+    <button id="more-btn" class="icon-btn" aria-label="Mais opções">⋯</button>
+  </header>
 
-    <h1 class="home-title">Minha App de Fitness</h1>
-    <p class="home-subtitle">Escolha uma opção</p>
+  <!-- MENU ⋯ -->
+  <div id="more-menu" class="more-menu" aria-hidden="true">
+    <button id="open-export" class="menu-item">Exportar</button>
+    <button id="open-import" class="menu-item">Importar</button>
+    <button id="open-clean" class="menu-item">Limpeza</button>
+    <button id="close-more" class="menu-item subtle">Fechar</button>
+  </div>
 
-    <div class="home-grid">
-      <div class="home-card" data-screen="screen1" role="button" tabindex="0" aria-label="Abrir Plano de Treino">
-        <div class="home-icon bg-blue" aria-hidden="true">🏋️</div>
-        <div class="home-card-title">Plano de Treino</div>
-        <div class="home-card-desc">Organize seus exercícios por dia e acompanhe seu progresso</div>
+  <!-- Navegação principal (HOME) -->
+  <nav class="home-nav">
+    <button class="home-card" data-screen="screen1">
+      <div class="home-ico">🏋️</div>
+      <div class="home-txt">
+        <div class="home-title">Treinos</div>
+        <div class="home-sub">Dias e exercícios</div>
+      </div>
+    </button>
+
+    <button class="home-card" data-screen="screen2">
+      <div class="home-ico">🍽️</div>
+      <div class="home-txt">
+        <div class="home-title">Alimentação</div>
+        <div class="home-sub">Tipos e refeições</div>
+      </div>
+    </button>
+
+    <button class="home-card" data-screen="screen3">
+      <div class="home-ico">📈</div>
+      <div class="home-txt">
+        <div class="home-title">Progresso</div>
+        <div class="home-sub">Peso e notas</div>
+      </div>
+    </button>
+  </nav>
+
+  <!-- ============ SCREENS ============ -->
+  <main>
+
+    <!-- ============ TREINOS (lista de dias) ============ -->
+    <section id="screen1" class="screen active">
+      <div class="screen-header">
+        <h2>Treinos</h2>
+        <button id="add-day-btn" class="fab" aria-label="Adicionar dia">+</button>
       </div>
 
-      <div class="home-card" data-screen="screen2" role="button" tabindex="0" aria-label="Abrir Plano Alimentar">
-        <div class="home-icon bg-green" aria-hidden="true">🍽️</div>
-        <div class="home-card-title">Plano Alimentar</div>
-        <div class="home-card-desc">Planeje suas refeições diárias com fotos e notas</div>
+      <div id="days-list" class="list"></div>
+    </section>
+
+    <!-- ============ TREINOS (dia) ============ -->
+    <section id="screenDay" class="screen">
+      <div class="screen-header">
+        <button id="back-to-days" class="back-btn">←</button>
+        <h2 id="day-title">Dia</h2>
+        <button id="add-ex-btn" class="fab" aria-label="Adicionar exercício">+</button>
       </div>
 
-      <div class="home-card" data-screen="screen3" role="button" tabindex="0" aria-label="Abrir Progresso">
-        <div class="home-icon bg-purple" aria-hidden="true">📈</div>
-        <div class="home-card-title">Progresso</div>
-        <div class="home-card-desc">Acompanhe seu peso e evolução ao longo do tempo</div>
+      <div id="ex-list" class="list"></div>
+    </section>
+
+    <!-- ============ TREINOS (detalhe exercício) ============ -->
+    <section id="screenExercise" class="screen">
+      <div class="screen-header">
+        <button id="back-to-day" class="back-btn">←</button>
+        <h2 id="ex-title">Exercício</h2>
+        <div class="header-actions">
+          <button id="edit-ex-btn" class="icon-btn" title="Editar">✏️</button>
+          <button id="delete-ex-btn" class="icon-btn danger" title="Eliminar">×</button>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ================== TREINO: DIAS ================== -->
-  <div id="screen1" class="screen">
-    <button class="back-top" data-screen="home">← <span>Voltar</span></button>
+      <div class="card">
+        <label class="row">
+          <input id="ex-done" type="checkbox" />
+          <span>Concluído</span>
+        </label>
 
-    <div class="progress-header">
-      <h1 class="progress-title">Plano de Treino</h1>
-      <button id="add-day-btn" class="icon-btn" aria-label="Adicionar dia">+</button>
-    </div>
+        <label class="field">
+          <div class="field-label">Notas</div>
+          <textarea id="ex-notes" rows="4" placeholder="Notas detalhadas..."></textarea>
+        </label>
 
-    <div id="days-list" class="progress-list"></div>
-  </div>
+        <label class="field">
+          <div class="field-label">Fotos/Vídeos</div>
+          <input id="ex-media-input" type="file" accept="image/*,video/*" multiple />
+        </label>
 
-  <!-- ================== TREINO: EXERCÍCIOS DO DIA ================== -->
-  <div id="screenDay" class="screen">
-    <button class="back-top" id="back-to-days">← <span>Voltar</span></button>
-
-    <div class="progress-header">
-      <h1 class="progress-title" id="day-title">Dia</h1>
-      <button id="add-ex-btn" class="icon-btn" aria-label="Adicionar exercício">+</button>
-    </div>
-
-    <div id="ex-list" class="progress-list"></div>
-  </div>
-
-  <!-- ================== TREINO: DETALHE DO EXERCÍCIO ================== -->
-  <div id="screenExercise" class="screen">
-    <button class="back-top" id="back-to-day">← <span>Voltar</span></button>
-
-    <div class="progress-header">
-      <h1 class="progress-title" id="ex-title">Exercício</h1>
-
-      <div class="header-actions">
-        <button id="edit-ex-btn" class="edit-btn" aria-label="Editar exercício">✏️</button>
-        <button id="delete-ex-btn" class="remove-btn" aria-label="Eliminar exercício">×</button>
-      </div>
-    </div>
-
-    <section class="card">
-      <div class="card-title">Fotos/Vídeos</div>
-      <input type="file" id="ex-media-input" accept="image/*,video/*" multiple />
-      <div id="ex-media-grid" class="media-grid"></div>
-    </section>
-
-    <section class="card">
-      <div class="card-title">Anotações</div>
-      <textarea id="ex-notes" rows="3" placeholder="Ex: 3 x 15 Rep"></textarea>
-    </section>
-
-    <section class="card">
-      <label class="done-row">
-        <input type="checkbox" id="ex-done" />
-        <span>Marcar como concluído</span>
-      </label>
-    </section>
-  </div>
-
-  <!-- ================== PLANO ALIMENTAR: TIPOS ================== -->
-  <div id="screen2" class="screen">
-    <button class="back-top" data-screen="home">← <span>Voltar</span></button>
-
-    <div class="progress-header">
-      <h1 class="progress-title">Plano Alimentar</h1>
-      <button id="add-mealtype-btn" class="icon-btn" aria-label="Adicionar tipo de refeição">+</button>
-    </div>
-
-    <div id="mealtypes-list" class="progress-list"></div>
-  </div>
-
-  <!-- ================== PLANO ALIMENTAR: REFEIÇÕES DO TIPO ================== -->
-  <div id="screenMealType" class="screen">
-    <button class="back-top" id="back-to-mealtypes">← <span>Voltar</span></button>
-
-    <div class="progress-header">
-      <h1 class="progress-title" id="mealtype-title">Tipo</h1>
-      <button id="add-meal-btn" class="icon-btn" aria-label="Adicionar refeição">+</button>
-    </div>
-
-    <div id="meals-list" class="progress-list"></div>
-  </div>
-
-  <!-- ================== PLANO ALIMENTAR: DETALHE DA REFEIÇÃO ================== -->
-  <div id="screenMeal" class="screen">
-    <button class="back-top" id="back-to-meals">← <span>Voltar</span></button>
-
-    <div class="progress-header">
-      <h1 class="progress-title" id="meal-title">Refeição</h1>
-
-      <div class="header-actions">
-        <button id="edit-meal-btn" class="edit-btn" aria-label="Editar refeição">✏️</button>
-        <button id="delete-meal-btn" class="remove-btn" aria-label="Eliminar refeição">×</button>
-      </div>
-    </div>
-
-    <section class="card">
-      <div class="card-title">Fotos/Vídeos</div>
-      <input type="file" id="meal-media-input" accept="image/*,video/*" multiple />
-      <div id="meal-media-grid" class="media-grid"></div>
-    </section>
-
-    <section class="card">
-      <div class="card-title">Anotações</div>
-      <textarea id="meal-notes" rows="3" placeholder="Ex: 2 ovos + aveia, 1 iogurte, etc."></textarea>
-    </section>
-  </div>
-
-  <!-- ================== PROGRESSO ================== -->
-  <div id="screen3" class="screen">
-    <button class="back-top" data-screen="home">← <span>Voltar</span></button>
-
-    <div class="progress-header">
-      <h1 class="progress-title">Progresso</h1>
-      <button id="add-record-btn" class="icon-btn" aria-label="Adicionar registo">+</button>
-    </div>
-
-    <section class="card">
-      <div class="card-title">Gráfico de Progresso</div>
-      <div class="chart-wrap">
-        <canvas id="weightChart" width="400" height="150"></canvas>
+        <div id="ex-media-grid" class="media-grid"></div>
       </div>
     </section>
 
-    <section class="card">
-      <div class="card-title">Resumo</div>
-      <div class="summary-grid">
+    <!-- ============ ALIMENTAÇÃO (tipos) ============ -->
+    <section id="screen2" class="screen">
+      <div class="screen-header">
+        <h2>Alimentação</h2>
+        <button id="add-mealtype-btn" class="fab" aria-label="Adicionar tipo">+</button>
+      </div>
+
+      <div id="mealtypes-list" class="list"></div>
+    </section>
+
+    <!-- ============ ALIMENTAÇÃO (refeições do tipo) ============ -->
+    <section id="screenMealType" class="screen">
+      <div class="screen-header">
+        <button id="back-to-mealtypes" class="back-btn">←</button>
+        <h2 id="mealtype-title">Tipo</h2>
+        <button id="add-meal-btn" class="fab" aria-label="Adicionar refeição">+</button>
+      </div>
+
+      <div id="meals-list" class="list"></div>
+    </section>
+
+    <!-- ============ ALIMENTAÇÃO (detalhe refeição) ============ -->
+    <section id="screenMeal" class="screen">
+      <div class="screen-header">
+        <button id="back-to-meals" class="back-btn">←</button>
+        <h2 id="meal-title">Refeição</h2>
+        <div class="header-actions">
+          <button id="edit-meal-btn" class="icon-btn" title="Editar">✏️</button>
+          <button id="delete-meal-btn" class="icon-btn danger" title="Eliminar">×</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <label class="field">
+          <div class="field-label">Notas</div>
+          <textarea id="meal-notes" rows="4" placeholder="O que comeste, quantidades, etc..."></textarea>
+        </label>
+
+        <label class="field">
+          <div class="field-label">Fotos/Vídeos</div>
+          <input id="meal-media-input" type="file" accept="image/*,video/*" multiple />
+        </label>
+
+        <div id="meal-media-grid" class="media-grid"></div>
+      </div>
+    </section>
+
+    <!-- ============ PROGRESSO ============ -->
+    <section id="screen3" class="screen">
+      <div class="screen-header">
+        <h2>Progresso</h2>
+        <button id="add-record-btn" class="fab" aria-label="Adicionar registo">+</button>
+      </div>
+
+      <div class="summary card">
         <div class="summary-item">
-          <div class="summary-label">Peso Inicial</div>
-          <div class="summary-value" id="sum-initial">—</div>
+          <div class="summary-label">Inicial</div>
+          <div id="sum-initial" class="summary-value">—</div>
         </div>
         <div class="summary-item">
-          <div class="summary-label">Peso Atual</div>
-          <div class="summary-value" id="sum-current">—</div>
+          <div class="summary-label">Atual</div>
+          <div id="sum-current" class="summary-value">—</div>
         </div>
         <div class="summary-item">
           <div class="summary-label">Diferença</div>
-          <div class="summary-value" id="sum-diff">—</div>
+          <div id="sum-diff" class="summary-value">—</div>
         </div>
       </div>
+
+      <div class="chart card">
+        <div class="chart-wrap">
+          <canvas id="weightChart"></canvas>
+        </div>
+      </div>
+
+      <div id="progress-list" class="list"></div>
     </section>
 
-    <div class="section-title">Histórico de Registos</div>
-    <div id="progress-list" class="progress-list"></div>
-  </div>
+  </main>
 
-  <!-- ================== MODAL: DIA ================== -->
+  <!-- ============ MODAIS: TREINO ============ -->
   <div id="modal-day" class="modal">
     <div class="modal-card">
       <div class="modal-head">
-        <h2 id="modal-day-title">Novo Dia de Treino</h2>
-        <button type="button" class="modal-close" id="close-day-modal">×</button>
+        <div id="modal-day-title" class="modal-title">Novo Dia de Treino</div>
+        <button id="close-day-modal" class="icon-btn">×</button>
       </div>
-      <p class="modal-sub">Crie um novo dia para organizar os seus exercícios.</p>
-      <input type="text" id="day-name" placeholder="Ex: Segunda-feira, Dia 1, etc." />
-      <button type="button" id="save-day" class="btn-primary full-width">Guardar</button>
+
+      <label class="field">
+        <div class="field-label">Nome do dia</div>
+        <input id="day-name" type="text" placeholder="Ex: Peito e Tríceps" />
+      </label>
+
+      <div class="modal-actions">
+        <button id="save-day" class="btn primary">Guardar</button>
+      </div>
     </div>
   </div>
 
-  <!-- ================== MODAL: EXERCÍCIO ================== -->
   <div id="modal-ex" class="modal">
     <div class="modal-card">
       <div class="modal-head">
-        <h2 id="modal-ex-title">Novo Exercício</h2>
-        <button type="button" class="modal-close" id="close-ex-modal">×</button>
+        <div id="modal-ex-title" class="modal-title">Novo Exercício</div>
+        <button id="close-ex-modal" class="icon-btn">×</button>
       </div>
-      <input type="text" id="ex-name" placeholder="Nome do exercício (ex: Agachamento)" />
-      <input type="text" id="ex-quick" placeholder="Notas curtas (ex: 3 x 15 Rep)" />
-      <button type="button" id="save-ex" class="btn-primary full-width">Guardar</button>
+
+      <label class="field">
+        <div class="field-label">Nome</div>
+        <input id="ex-name" type="text" placeholder="Ex: Supino inclinado" />
+      </label>
+
+      <label class="field">
+        <div class="field-label">Notas rápidas</div>
+        <input id="ex-quick" type="text" placeholder="Ex: 4x10 | 22.5kg" />
+      </label>
+
+      <div class="modal-actions">
+        <button id="save-ex" class="btn primary">Guardar</button>
+      </div>
     </div>
   </div>
 
-  <!-- ================== MODAL: TIPO DE REFEIÇÃO ================== -->
+  <!-- ============ MODAIS: ALIMENTAÇÃO ============ -->
   <div id="modal-mealtype" class="modal">
     <div class="modal-card">
       <div class="modal-head">
-        <h2 id="modal-mealtype-title">Novo Tipo de Refeição</h2>
-        <button type="button" class="modal-close" id="close-mealtype-modal">×</button>
+        <div id="modal-mealtype-title" class="modal-title">Novo Tipo de Refeição</div>
+        <button id="close-mealtype-modal" class="icon-btn">×</button>
       </div>
-      <p class="modal-sub">Crie um tipo (ex: Pequeno-almoço, Almoço, Jantar...).</p>
-      <input type="text" id="mealtype-name" placeholder="Ex: Pequeno-almoço" />
-      <button type="button" id="save-mealtype" class="btn-primary full-width">Guardar</button>
+
+      <label class="field">
+        <div class="field-label">Nome do tipo</div>
+        <input id="mealtype-name" type="text" placeholder="Ex: Pequeno-almoço" />
+      </label>
+
+      <div class="modal-actions">
+        <button id="save-mealtype" class="btn primary">Guardar</button>
+      </div>
     </div>
   </div>
 
-  <!-- ================== MODAL: REFEIÇÃO ================== -->
   <div id="modal-meal" class="modal">
     <div class="modal-card">
       <div class="modal-head">
-        <h2 id="modal-meal-title">Nova Refeição</h2>
-        <button type="button" class="modal-close" id="close-meal-modal">×</button>
+        <div id="modal-meal-title" class="modal-title">Nova Refeição</div>
+        <button id="close-meal-modal" class="icon-btn">×</button>
       </div>
-      <p class="modal-sub">Dê um título à refeição (ex: “Pequeno-almoço 1”, “Almoço de domingo”).</p>
-      <input type="text" id="meal-name" placeholder="Título da refeição" />
-      <button type="button" id="save-meal" class="btn-primary full-width">Guardar</button>
+
+      <label class="field">
+        <div class="field-label">Nome</div>
+        <input id="meal-name" type="text" placeholder="Ex: Ovos + pão + fruta" />
+      </label>
+
+      <div class="modal-actions">
+        <button id="save-meal" class="btn primary">Guardar</button>
+      </div>
     </div>
   </div>
 
-  <!-- ================== MODAL: PROGRESSO ================== -->
+  <!-- ============ MODAL: PROGRESSO ============ -->
   <div id="modal-progress" class="modal">
     <div class="modal-card">
       <div class="modal-head">
-        <h2 id="modal-progress-title">Novo Registo</h2>
-        <button type="button" class="modal-close" id="close-progress-modal">×</button>
+        <div id="modal-progress-title" class="modal-title">Novo Registo</div>
+        <button id="close-progress-modal" class="icon-btn">×</button>
       </div>
 
-      <p class="modal-sub">Adicione o seu peso e observações.</p>
-
       <form id="progress-form">
-        <div class="progress-form-row">
-          <input type="date" id="date" required />
-          <input type="number" id="weight" step="0.1" placeholder="Peso (kg)" required />
-        </div>
+        <label class="field">
+          <div class="field-label">Data</div>
+          <input id="date" type="date" required />
+        </label>
 
-        <textarea id="notes" rows="4" placeholder="Observações"></textarea>
+        <label class="field">
+          <div class="field-label">Peso (kg)</div>
+          <input id="weight" type="number" step="0.1" inputmode="decimal" required />
+        </label>
 
-        <div class="form-actions">
-          <button type="submit" class="btn-primary full-width">Guardar</button>
-          <button type="button" id="cancel-btn" class="btn-danger full-width">Cancelar</button>
+        <label class="field">
+          <div class="field-label">Notas</div>
+          <input id="notes" type="text" placeholder="Opcional" />
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" id="cancel-btn" class="btn">Cancelar</button>
+          <button type="submit" class="btn primary">Guardar</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ================== LIGHTBOX (MEDIA) ================== -->
-  <div id="lightbox">
-    <div class="lightbox-content">
-      <button type="button" class="lightbox-close">×</button>
+  <!-- ============ LIGHTBOX ============ -->
+  <div id="lightbox" class="lightbox" style="display:none;">
+    <button class="lightbox-close" aria-label="Fechar">×</button>
 
-      <button type="button" class="lightbox-nav prev" aria-label="Anterior">‹</button>
-      <button type="button" class="lightbox-nav next" aria-label="Seguinte">›</button>
-
-      <h2 id="lightbox-title"></h2>
-      <img id="lightbox-img" style="display:none;" />
-      <video id="lightbox-video" controls style="display:none;"></video>
-      <textarea id="lightbox-notes" placeholder="Notas (opcional para esta foto/vídeo)"></textarea>
+    <div class="lightbox-top">
+      <div id="lightbox-title" class="lightbox-title"></div>
     </div>
+
+    <button class="lightbox-nav prev" aria-label="Anterior">‹</button>
+    <button class="lightbox-nav next" aria-label="Seguinte">›</button>
+
+    <img id="lightbox-img" alt="" style="display:none;" />
+    <video id="lightbox-video" controls style="display:none;"></video>
+
+    <textarea id="lightbox-notes" placeholder="Notas da foto/vídeo..."></textarea>
   </div>
 
-  <!-- ================== MENU ⋯ ================== -->
-  <div id="more-menu" class="more-menu" aria-hidden="true">
-    <button type="button" class="more-item" id="open-export">Exportar</button>
-    <button type="button" class="more-item" id="open-import">Importar</button>
-    <button type="button" class="more-item" id="open-clean">Limpeza</button>
-    <button type="button" class="more-item" id="close-more">Fechar</button>
-  </div>
-
-  <!-- ================== MODAL: EXPORTAR ================== -->
+  <!-- ============ MODAL EXPORT ============ -->
   <div id="modal-export" class="modal">
     <div class="modal-card">
       <div class="modal-head">
-        <h2>Exportar</h2>
-        <button type="button" class="modal-close" id="close-export-modal">×</button>
+        <div class="modal-title">Exportar</div>
+        <button id="close-export-modal" class="icon-btn">×</button>
       </div>
 
-      <p class="modal-sub">Escolhe o que queres exportar. Vai ser descarregado um ficheiro .json.</p>
-
-      <div class="menu-list">
-        <button type="button" class="btn-primary full-width" id="exp-all">Exportar tudo</button>
-        <button type="button" class="btn-primary full-width" id="exp-train">Só Treino</button>
-        <button type="button" class="btn-primary full-width" id="exp-food">Só Alimentação</button>
-        <button type="button" class="btn-primary full-width" id="exp-progress">Só Progresso</button>
+      <div class="modal-body">
+        <button id="exp-all" class="btn wide primary">Exportar Tudo</button>
+        <button id="exp-train" class="btn wide">Exportar Treinos</button>
+        <button id="exp-food" class="btn wide">Exportar Alimentação</button>
+        <button id="exp-progress" class="btn wide">Exportar Progresso</button>
       </div>
 
-      <button type="button" class="back-inline" id="back-export">← Voltar</button>
+      <div class="modal-actions">
+        <button id="back-export" class="btn">Voltar</button>
+      </div>
     </div>
   </div>
 
-  <!-- ================== MODAL: IMPORTAR ================== -->
+  <!-- ============ MODAL IMPORT ============ -->
   <div id="modal-import" class="modal">
     <div class="modal-card">
       <div class="modal-head">
-        <h2 id="import-title">Importar</h2>
-        <button type="button" class="modal-close" id="close-import-modal">×</button>
+        <div class="modal-title">Importar</div>
+        <button id="close-import-modal" class="icon-btn">×</button>
       </div>
 
-      <!-- STEP 1: escolher categoria -->
+      <!-- Step 1: escolher scope -->
       <div id="import-step-1">
-        <p class="modal-sub">Escolhe o que queres importar.</p>
-        <div class="menu-list">
-          <button type="button" class="btn-primary full-width" data-imp-scope="all">Importar tudo</button>
-          <button type="button" class="btn-primary full-width" data-imp-scope="train">Só Treino</button>
-          <button type="button" class="btn-primary full-width" data-imp-scope="food">Só Alimentação</button>
-          <button type="button" class="btn-primary full-width" data-imp-scope="progress">Só Progresso</button>
+        <p>O que queres importar?</p>
+        <div class="grid">
+          <button class="btn wide" data-imp-scope="all">Tudo</button>
+          <button class="btn wide" data-imp-scope="train">Treinos</button>
+          <button class="btn wide" data-imp-scope="food">Alimentação</button>
+          <button class="btn wide" data-imp-scope="progress">Progresso</button>
         </div>
-        <button type="button" class="back-inline" id="back-import-1">← Voltar</button>
+
+        <div class="modal-actions">
+          <button id="back-import-1" class="btn">Voltar</button>
+        </div>
       </div>
 
-      <!-- STEP 2: escolher ficheiro -->
+      <!-- Step 2: escolher ficheiro -->
       <div id="import-step-2" style="display:none;">
-        <p class="modal-sub">Escolhe o ficheiro .json para importar.</p>
+        <label class="field">
+          <div class="field-label">Ficheiro .json</div>
+          <input id="import-file" type="file" accept="application/json" />
+        </label>
 
-        <input type="file" id="import-file" accept="application/json" />
-        <div style="height:10px"></div>
-
-        <button type="button" class="btn-primary full-width" id="go-import-mode" disabled>Continuar</button>
-        <button type="button" class="back-inline" id="back-import-2">← Voltar</button>
+        <div class="modal-actions">
+          <button id="back-import-2" class="btn">Voltar</button>
+          <button id="go-import-mode" class="btn primary" disabled>Continuar</button>
+        </div>
       </div>
 
-      <!-- STEP 3: modo (substituir/adicionar) -->
+      <!-- Step 3: modo -->
       <div id="import-step-3" style="display:none;">
-        <p class="modal-sub">
-          Queres <strong>Substituir</strong> o que existe (apaga e mete o do ficheiro)
-          ou <strong>Adicionar</strong> (junta ao que já tens)?
-        </p>
+        <p>Como queres importar?</p>
+        <button id="imp-add" class="btn wide primary">Adicionar (merge)</button>
+        <button id="imp-replace" class="btn wide danger">Substituir (apagar e importar)</button>
 
-        <div class="menu-list">
-          <button type="button" class="btn-danger full-width" id="imp-replace">Substituir</button>
-          <button type="button" class="btn-primary full-width" id="imp-add">Adicionar</button>
+        <div class="modal-actions">
+          <button id="back-import-3" class="btn">Voltar</button>
         </div>
-
-        <button type="button" class="back-inline" id="back-import-3">← Voltar</button>
       </div>
     </div>
   </div>
 
-  <!-- ================== MODAL: LIMPEZA (NOVO) ================== -->
+  <!-- ============ MODAL CLEAN ============ -->
   <div id="modal-clean" class="modal">
     <div class="modal-card">
       <div class="modal-head">
-        <h2>Limpeza</h2>
-        <button type="button" class="modal-close" id="close-clean-modal">×</button>
+        <div class="modal-title">Limpeza</div>
+        <button id="close-clean-modal" class="icon-btn">×</button>
       </div>
 
-      <p class="modal-sub">
-        Remove fotos/vídeos guardados que já não estão a ser usados em nenhum treino/refeição.
-      </p>
+      <div id="clean-info" class="modal-body"></div>
 
-      <div id="clean-info" class="card" style="margin-top:0;"></div>
-
-      <div class="menu-list">
-        <button type="button" class="btn-danger full-width" id="do-clean">Limpar não usados</button>
+      <div class="modal-actions">
+        <button id="back-clean" class="btn">Voltar</button>
+        <button id="do-clean" class="btn primary">Limpar agora</button>
       </div>
-
-      <button type="button" class="back-inline" id="back-clean">← Voltar</button>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="script.js?v=2026-01-23-1"></script>
 </body>
-</html>
-
+  </html>
