@@ -1,8 +1,11 @@
 /* =========================================================
    App-Fitness — script.js (PARTE 1/4)
-   - Helpers + Navegação + Storage
-   - MediaStore (novo, poupa espaço)
-   - Treino (Dias + Exercícios)
+   - Helpers + Navegação
+   - Storage (Treinos/Alimentação/Progresso)
+   - MediaStore (poupa espaço)
+   - Compressão de imagens
+   - Modais base
+   - Treino: Dias + Exercícios (lista)
 ========================================================= */
 
 const qs = s => document.querySelector(s);
@@ -32,7 +35,7 @@ qsa('[data-screen]').forEach(el => {
 
 /* ===================== STORAGE (TREINOS) ===================== */
 const DAYS_KEY = 'ft_days';
-const EX_KEY = 'ft_exercises';
+const EX_KEY   = 'ft_exercises';
 
 const loadDays = () => JSON.parse(localStorage.getItem(DAYS_KEY) || '[]');
 const saveDays = d => localStorage.setItem(DAYS_KEY, JSON.stringify(d));
@@ -42,7 +45,7 @@ const saveExercises = d => localStorage.setItem(EX_KEY, JSON.stringify(d));
 
 /* ===================== STORAGE (ALIMENTAÇÃO) ===================== */
 const MEALTYPES_KEY = 'ft_mealtypes';
-const MEALS_KEY = 'ft_meals';
+const MEALS_KEY     = 'ft_meals';
 
 const loadMealTypes = () => JSON.parse(localStorage.getItem(MEALTYPES_KEY) || '[]');
 const saveMealTypes = d => localStorage.setItem(MEALTYPES_KEY, JSON.stringify(d));
@@ -51,8 +54,10 @@ const loadMeals = () => JSON.parse(localStorage.getItem(MEALS_KEY) || '[]');
 const saveMeals = d => localStorage.setItem(MEALS_KEY, JSON.stringify(d));
 
 /* ===================== STORAGE (PROGRESSO) ===================== */
-const loadProgress = () => {
-  const data = JSON.parse(localStorage.getItem('progress') || '[]');
+const PROGRESS_KEY = 'progress';
+
+function loadProgress() {
+  const data = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '[]');
 
   // garantir ids
   let changed = false;
@@ -62,18 +67,17 @@ const loadProgress = () => {
       changed = true;
     }
   }
-  if (changed) localStorage.setItem('progress', JSON.stringify(data));
+  if (changed) localStorage.setItem(PROGRESS_KEY, JSON.stringify(data));
 
   return data;
-};
-const saveProgress = d => localStorage.setItem('progress', JSON.stringify(d));
+}
+const saveProgress = d => localStorage.setItem(PROGRESS_KEY, JSON.stringify(d));
 
 /* =========================================================
    MEDIA STORE (NOVO)
    - guarda as fotos 1x só (poupa espaço)
-   - itens (exercícios/refeições) só guardam refs: {id, type, ref}
+   - exercícios/refeições guardam refs: {id, type, ref, notes}
 ========================================================= */
-
 const MEDIA_KEY = 'ft_media_store';
 
 /*
@@ -120,61 +124,13 @@ function mediaStoreGet(mediaId) {
   return store.items?.[mediaId] || null;
 }
 
-/* remove do store (USAR só na limpeza, nunca no "apagar da refeição") */
+/* remove do store (USAR só na limpeza, nunca no "apagar da refeição/exercício") */
 function mediaStoreDelete(mediaId) {
   const store = loadMediaStore();
   if (store.items?.[mediaId]) {
     delete store.items[mediaId];
     saveMediaStore(store);
   }
-}
-
-/* conta quantas vezes um mediaId está em uso em treino+food */
-function countMediaUsage(mediaId) {
-  let count = 0;
-
-  // treino
-  const exs = loadExercises();
-  for (const ex of exs) {
-    const arr = ex.media || [];
-    for (const m of arr) {
-      if (m?.ref === mediaId) count++;
-    }
-  }
-
-  // food
-  const meals = loadMeals();
-  for (const meal of meals) {
-    const arr = meal.media || [];
-    for (const m of arr) {
-      if (m?.ref === mediaId) count++;
-    }
-  }
-
-  return count;
-}
-
-/* devolve todos os mediaIds que estão a ser usados */
-function collectAllUsedMediaIds() {
-  const used = new Set();
-
-  const exs = loadExercises();
-  for (const ex of exs) {
-    const arr = ex.media || [];
-    for (const m of arr) {
-      if (m?.ref) used.add(m.ref);
-    }
-  }
-
-  const meals = loadMeals();
-  for (const meal of meals) {
-    const arr = meal.media || [];
-    for (const m of arr) {
-      if (m?.ref) used.add(m.ref);
-    }
-  }
-
-  return used;
 }
 
 /* ===================== COMPRESSÃO (IMAGENS) ===================== */
@@ -370,15 +326,14 @@ if (qs('#save-day')) {
   };
 }
 
-/* ===================== TREINO: EXERCÍCIOS ===================== */
+/* ===================== TREINO: EXERCÍCIOS (LISTA) ===================== */
 const exList = qs('#ex-list');
 
 function renderExercises() {
   if (!exList) return;
 
   const exs = loadExercises().filter(x => x.dayId === currentDayId);
-  const days = loadDays();
-  const day = days.find(d => d.id === currentDayId);
+  const day = loadDays().find(d => d.id === currentDayId);
   if (day) qs('#day-title').textContent = day.title;
 
   exList.innerHTML = '';
@@ -480,7 +435,7 @@ function renderExercises() {
 
     card.onclick = () => {
       currentExId = ex.id;
-      openExerciseDetail();
+      openExerciseDetail(); // (definido na PARTE 2)
     };
 
     exList.appendChild(card);
@@ -533,7 +488,7 @@ if (qs('#save-ex')) {
         name,
         notes: quick,
         done: false,
-        media: [], // agora guarda refs: [{id, type, ref, notes}]
+        media: [], // refs: [{id, type, ref, notes}]
         createdAt: Date.now()
       });
     }
@@ -543,11 +498,11 @@ if (qs('#save-ex')) {
     renderExercises();
     renderDays();
   };
-}
+     }
 
 /* =========================================================
    App-Fitness — script.js (PARTE 2/4)
-   - Detalhe do Exercício (upload + notas + concluído)
+   - Treino: Detalhe do Exercício (upload + notas + concluído)
    - Alimentação: Tipos + Refeições (listas) + modais base
 ========================================================= */
 
@@ -635,7 +590,7 @@ if (exDone) {
   });
 }
 
-/* ========= Upload media (AGORA: guarda 1x no MediaStore, item só referencia) ========= */
+/* ========= Upload media (MediaStore + refs) ========= */
 if (exMediaInput) {
   exMediaInput.onchange = async () => {
     const ex = getCurrentExercise();
@@ -654,7 +609,7 @@ if (exMediaInput) {
           alert('Não foi possível processar esta imagem.');
         }
       } else if (file.type.startsWith('video')) {
-        // (tens dito que de momento não usas, mas fica preparado)
+        // (fica preparado)
         const reader = new FileReader();
         await new Promise(resolve => {
           reader.onload = e => {
@@ -694,7 +649,7 @@ function renderExerciseMedia() {
     el.src = stored.src;
     if (!stored.type.startsWith('image')) el.muted = true;
 
-    el.onclick = () => openMediaLightbox(ex.name || 'Media', m.id);
+    el.onclick = () => openMediaLightbox(ex.name || 'Media', m.id); // PARTE 4
 
     const del = document.createElement('button');
     del.textContent = '×';
@@ -705,7 +660,7 @@ function renderExerciseMedia() {
       const updated = mediaArr.filter(x => x.id !== m.id);
       saveCurrentExercise({ media: updated });
 
-      // NÃO apagar do MediaStore aqui (pode estar a ser usado noutro lado)
+      // NÃO apagar do MediaStore aqui
       renderExerciseMedia();
       renderExercises();
       renderDays();
@@ -734,7 +689,7 @@ const mealsList = qs('#meals-list');
 const modalMealType = qs('#modal-mealtype');
 const modalMeal = qs('#modal-meal');
 
-/* MODAIS — abrir/fechar */
+/* MODAIS — abrir/fechar (food) */
 function openModalX(el){ if (el) el.style.display = 'flex'; }
 function closeModalX(el){ if (el) el.style.display = 'none'; }
 
@@ -813,7 +768,7 @@ function renderMealTypes() {
       currentMealTypeId = t.id;
       qs('#mealtype-title').textContent = t.title;
       openScreen('screenMealType');
-      renderMeals();
+      renderMeals(); // PARTE 3
     };
 
     mealTypesList.appendChild(card);
@@ -1086,7 +1041,7 @@ if (mealNotesEl) {
   });
 }
 
-/* ========= Upload media (AGORA: MediaStore + refs) ========= */
+/* ========= Upload media (MediaStore + refs) ========= */
 if (mealMediaInput) {
   mealMediaInput.onchange = async () => {
     const m = getCurrentMeal();
@@ -1144,7 +1099,7 @@ function renderMealMedia() {
     el.src = stored.src;
     if (!stored.type.startsWith('image')) el.muted = true;
 
-    el.onclick = () => openMealMediaLightbox(m.title || 'Media', x.id);
+    el.onclick = () => openMealMediaLightbox(m.title || 'Media', x.id); // PARTE 4
 
     const del = document.createElement('button');
     del.textContent = '×';
@@ -1155,7 +1110,7 @@ function renderMealMedia() {
       const updated = mediaArr.filter(z => z.id !== x.id);
       saveCurrentMeal({ media: updated });
 
-      // NÃO apagar do MediaStore aqui (pode estar a ser usado noutro sítio)
+      // NÃO apagar do MediaStore aqui
       renderMealMedia();
       renderMeals();
       renderMealTypes();
@@ -1269,799 +1224,6 @@ function lbBindMediaClickNext() {
 lbBindMediaClickNext();
 
 /* =========================================================
-   App-Fitness — script.js (PARTE 4/4)
-   - Lightbox open (treino + alimentação) COM MediaStore (refs)
-   - Progresso
-   - Menu ⋯ + Exportar/Importar (pergunta "com fotos?")
-   - Limpeza (gerir espaço): limpar não usados + stats
-   - INIT
-========================================================= */
-
-/* ===================== LIGHTBOX TREINOS (ABRIR COM LISTA) ===================== */
-function openMediaLightbox(title, mediaLocalId) {
-  const ex = getCurrentExercise();
-  if (!ex) return;
-
-  const refs = ex.media || []; // [{id,type,ref,notes}]
-  const idx = refs.findIndex(x => x.id === mediaLocalId);
-  if (idx === -1) return;
-
-  const items = refs
-    .map(x => {
-      const stored = x?.ref ? mediaStoreGet(x.ref) : null;
-      if (!stored) return null;
-      return { id: x.id, type: stored.type, src: stored.src, notes: x.notes || '' };
-    })
-    .filter(Boolean);
-
-  const idx2 = items.findIndex(x => x.id === mediaLocalId);
-  if (idx2 === -1) return;
-
-  lb.title = title;
-  lb.items = items.map(x => ({ ...x }));
-  lb.index = idx2;
-
-  // guardar notas no item local (não no MediaStore)
-  lb.saveNotes = (id, value) => {
-    const exNow = getCurrentExercise();
-    if (!exNow) return;
-    const media = exNow.media || [];
-    const i = media.findIndex(x => x.id === id);
-    if (i !== -1) {
-      media[i].notes = value;
-      saveCurrentExercise({ media });
-    }
-  };
-
-  lbShow();
-}
-
-/* ===================== LIGHTBOX REFEIÇÕES (ABRIR COM LISTA) ===================== */
-function openMealMediaLightbox(title, mediaLocalId) {
-  const meal = getCurrentMeal();
-  if (!meal) return;
-
-  const refs = meal.media || []; // [{id,type,ref,notes}]
-  const idx = refs.findIndex(x => x.id === mediaLocalId);
-  if (idx === -1) return;
-
-  const items = refs
-    .map(x => {
-      const stored = x?.ref ? mediaStoreGet(x.ref) : null;
-      if (!stored) return null;
-      return { id: x.id, type: stored.type, src: stored.src, notes: x.notes || '' };
-    })
-    .filter(Boolean);
-
-  const idx2 = items.findIndex(x => x.id === mediaLocalId);
-  if (idx2 === -1) return;
-
-  lb.title = title;
-  lb.items = items.map(x => ({ ...x }));
-  lb.index = idx2;
-
-  lb.saveNotes = (id, value) => {
-    const mealNow = getCurrentMeal();
-    if (!mealNow) return;
-    const media = mealNow.media || [];
-    const i = media.findIndex(x => x.id === id);
-    if (i !== -1) {
-      media[i].notes = value;
-      saveCurrentMeal({ media });
-    }
-  };
-
-  lbShow();
-}
-
-/* FECHAR LIGHTBOX */
-if (qs('.lightbox-close')) {
-  qs('.lightbox-close').onclick = () => {
-    const box = qs('#lightbox');
-    const vid = qs('#lightbox-video');
-    if (box) box.style.display = 'none';
-    try { vid.pause(); } catch {}
-    lb.open = false;
-  };
-}
-
-/* ===================== PROGRESSO ===================== */
-let chart;
-let editingId = null;
-
-if (qs('#add-record-btn')) {
-  qs('#add-record-btn').onclick = () => {
-    editingId = null;
-    qs('#modal-progress-title').textContent = 'Novo Registo';
-    qs('#progress-form').reset?.();
-    openModal(modalProgress);
-  };
-}
-
-if (qs('#cancel-btn')) {
-  qs('#cancel-btn').onclick = () => {
-    editingId = null;
-    closeModal(modalProgress);
-  };
-}
-
-if (qs('#progress-form')) {
-  qs('#progress-form').onsubmit = e => {
-    e.preventDefault();
-    const data = loadProgress();
-
-    const payload = {
-      date: qs('#date').value,
-      weight: parseFloat(qs('#weight').value),
-      notes: qs('#notes').value
-    };
-
-    if (editingId) {
-      const idx = data.findIndex(x => x.id === editingId);
-      if (idx !== -1) data[idx] = { ...data[idx], ...payload };
-    } else {
-      data.push({ id: uid(), ...payload });
-    }
-
-    saveProgress(data);
-    editingId = null;
-    e.target.reset();
-    closeModal(modalProgress);
-    renderProgress();
-  };
-}
-
-function renderProgress() {
-  const list = qs('#progress-list');
-  if (!list) return;
-
-  const data = loadProgress();
-  list.innerHTML = '';
-
-  const sortedDesc = [...data].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  sortedDesc.forEach(r => {
-    const row = document.createElement('div');
-    row.className = 'list-card';
-
-    const left = document.createElement('div');
-    left.className = 'list-left';
-
-    const text = document.createElement('div');
-    text.innerHTML = `<div class="list-title">${r.date}</div>
-                      <div class="list-sub">${r.weight} kg${r.notes ? ` — ${r.notes}` : ''}</div>`;
-
-    left.append(text);
-
-    const actions = document.createElement('div');
-    actions.className = 'list-actions';
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'edit-btn';
-    editBtn.textContent = '✏️';
-    editBtn.title = 'Editar';
-    editBtn.onclick = () => {
-      editingId = r.id;
-      qs('#date').value = r.date || '';
-      qs('#weight').value = (r.weight ?? '');
-      qs('#notes').value = r.notes || '';
-      qs('#modal-progress-title').textContent = 'Editar Registo';
-      openModal(modalProgress);
-    };
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'remove-btn';
-    delBtn.textContent = '×';
-    delBtn.title = 'Eliminar';
-    delBtn.onclick = () => {
-      const fresh = loadProgress();
-      const idx = fresh.findIndex(x => x.id === r.id);
-      if (idx !== -1) {
-        fresh.splice(idx, 1);
-        saveProgress(fresh);
-        renderProgress();
-      }
-    };
-
-    actions.append(editBtn, delBtn);
-    row.append(left, actions);
-    list.appendChild(row);
-  });
-
-  const sortedAsc = [...data].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
-
-  const sumInitial = qs('#sum-initial');
-  const sumCurrent = qs('#sum-current');
-  const sumDiff = qs('#sum-diff');
-
-  if (sumInitial && sumCurrent && sumDiff) {
-    if (sortedAsc.length === 0) {
-      sumInitial.textContent = '—';
-      sumCurrent.textContent = '—';
-      sumDiff.textContent = '—';
-    } else {
-      const initial = sortedAsc[0].weight;
-      const current = sortedAsc[sortedAsc.length - 1].weight;
-      const diff = current - initial;
-
-      sumInitial.textContent = `${initial.toFixed(1)} kg`;
-      sumCurrent.textContent = `${current.toFixed(1)} kg`;
-      sumDiff.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} kg`;
-    }
-  }
-
-  drawChart(sortedAsc);
-}
-
-function drawChart(data) {
-  const canvas = qs('#weightChart');
-  if (!canvas) return;
-
-  const ctx = canvas.getContext('2d');
-  if (chart) chart.destroy();
-
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: data.map(d => d.date),
-      datasets: [{
-        label: 'Peso (kg)',
-        data: data.map(d => d.weight),
-        tension: 0.35,
-        borderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 4,
-        fill: false
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      layout: { padding: { top: 8, right: 10, bottom: 8, left: 10 } },
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: { boxWidth: 14, boxHeight: 10, padding: 10, font: { size: 12, weight: '600' } }
-        },
-        tooltip: { titleFont: { size: 12, weight: '700' }, bodyFont: { size: 12 } }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(0,0,0,0.08)', borderDash: [3, 3] },
-          ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 }
-        },
-        y: {
-          grid: { color: 'rgba(0,0,0,0.08)', borderDash: [3, 3] },
-          ticks: { font: { size: 10 }, callback: (v) => Number(v).toFixed(1) },
-          title: { display: true, text: 'Peso (kg)', font: { size: 11, weight: '600' }, padding: { top: 0, bottom: 6 } }
-        }
-      }
-    }
-  });
-}
-
-/* =========================================================
-   MENU ⋯ + EXPORTAR / IMPORTAR + LIMPEZA
-========================================================= */
-const moreBtn = qs('#more-btn');
-const moreMenu = qs('#more-menu');
-
-const openExportBtn = qs('#open-export');
-const openImportBtn = qs('#open-import');
-const openCleanBtn  = qs('#open-clean'); // ✅ novo botão (HTML tem de ter)
-const closeMoreBtn = qs('#close-more');
-
-const modalExport = qs('#modal-export');
-const modalImport = qs('#modal-import');
-const modalClean  = qs('#modal-clean');  // ✅ novo modal (HTML tem de ter)
-
-/* --- helpers export/import --- */
-function safeParseJSON(text) {
-  try { return JSON.parse(text); } catch { return null; }
-}
-function downloadJSON(obj, filename) {
-  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-/* --- abrir/fechar menu ⋯ --- */
-function showMoreMenu() {
-  if (!moreMenu) return;
-  moreMenu.classList.add('show');
-  moreMenu.setAttribute('aria-hidden', 'false');
-}
-function hideMoreMenu() {
-  if (!moreMenu) return;
-  moreMenu.classList.remove('show');
-  moreMenu.setAttribute('aria-hidden', 'true');
-}
-
-if (moreBtn) moreBtn.onclick = (e) => {
-  e.stopPropagation();
-  if (!moreMenu) return;
-  moreMenu.classList.contains('show') ? hideMoreMenu() : showMoreMenu();
-};
-
-if (closeMoreBtn) closeMoreBtn.onclick = () => hideMoreMenu();
-
-document.addEventListener('click', (e) => {
-  if (!moreMenu || !moreMenu.classList.contains('show')) return;
-  if (e.target === moreBtn) return;
-  if (moreMenu.contains(e.target)) return;
-  hideMoreMenu();
-});
-
-/* ===================== EXPORT (pergunta "com fotos?") ===================== */
-if (qs('#close-export-modal')) qs('#close-export-modal').onclick = () => closeModal(modalExport);
-if (modalExport) modalExport.addEventListener('click', e => { if (e.target === modalExport) closeModal(modalExport); });
-
-if (openExportBtn) openExportBtn.onclick = () => {
-  hideMoreMenu();
-  openModal(modalExport);
-};
-if (qs('#back-export')) qs('#back-export').onclick = () => {
-  closeModal(modalExport);
-  showMoreMenu();
-};
-
-function buildExportPayload(scope, includeMedia) {
-  const payload = {
-    app: 'App-Fitness',
-    exportedAt: new Date().toISOString(),
-    scope,
-    includesMedia: !!includeMedia,
-    data: {}
-  };
-
-  if (scope === 'all' || scope === 'train') {
-    payload.data.train = {
-      days: loadDays(),
-      exercises: loadExercises()
-    };
-  }
-  if (scope === 'all' || scope === 'food') {
-    payload.data.food = {
-      mealtypes: loadMealTypes(),
-      meals: loadMeals()
-    };
-  }
-  if (scope === 'all' || scope === 'progress') {
-    payload.data.progress = {
-      records: loadProgress()
-    };
-  }
-
-  if (includeMedia) {
-    payload.data.media = {
-      store: mediaStoreLoad()
-    };
-  }
-
-  return payload;
-}
-
-function doExport(scope) {
-  const includeMedia = confirm('Exportar com fotos/vídeos? (OK = com, Cancelar = sem)');
-  const p = buildExportPayload(scope, includeMedia);
-
-  const date = new Date();
-  const y = date.getFullYear();
-  const m = String(date.getMonth()+1).padStart(2,'0');
-  const d = String(date.getDate()).padStart(2,'0');
-
-  const suffix = includeMedia ? 'COM_MEDIA' : 'SEM_MEDIA';
-  downloadJSON(p, `App-Fitness_${scope}_${suffix}_${y}-${m}-${d}.json`);
-}
-
-if (qs('#exp-all')) qs('#exp-all').onclick = () => doExport('all');
-if (qs('#exp-train')) qs('#exp-train').onclick = () => doExport('train');
-if (qs('#exp-food')) qs('#exp-food').onclick = () => doExport('food');
-if (qs('#exp-progress')) qs('#exp-progress').onclick = () => doExport('progress');
-
-/* ===================== IMPORT (permite vir com/sem media) ===================== */
-const impStep1 = qs('#import-step-1');
-const impStep2 = qs('#import-step-2');
-const impStep3 = qs('#import-step-3');
-
-const impFile = qs('#import-file');
-const goImportModeBtn = qs('#go-import-mode');
-const impReplaceBtn = qs('#imp-replace');
-const impAddBtn = qs('#imp-add');
-
-let impScope = 'all';
-let impJson = null;
-
-function showImportStep(n) {
-  if (!impStep1 || !impStep2 || !impStep3) return;
-  impStep1.style.display = (n === 1) ? 'block' : 'none';
-  impStep2.style.display = (n === 2) ? 'block' : 'none';
-  impStep3.style.display = (n === 3) ? 'block' : 'none';
-}
-
-function resetImportFlow() {
-  impScope = 'all';
-  impJson = null;
-  if (impFile) impFile.value = '';
-  if (goImportModeBtn) goImportModeBtn.disabled = true;
-  showImportStep(1);
-}
-
-if (qs('#close-import-modal')) qs('#close-import-modal').onclick = () => { resetImportFlow(); closeModal(modalImport); };
-if (modalImport) modalImport.addEventListener('click', e => { if (e.target === modalImport) { resetImportFlow(); closeModal(modalImport); } });
-
-if (openImportBtn) openImportBtn.onclick = () => {
-  hideMoreMenu();
-  resetImportFlow();
-  openModal(modalImport);
-};
-
-if (qs('#back-import-1')) qs('#back-import-1').onclick = () => {
-  resetImportFlow();
-  closeModal(modalImport);
-  showMoreMenu();
-};
-
-if (qs('#back-import-2')) qs('#back-import-2').onclick = () => showImportStep(1);
-if (qs('#back-import-3')) qs('#back-import-3').onclick = () => showImportStep(2);
-
-/* escolher scope no step 1 */
-qsa('[data-imp-scope]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    impScope = btn.dataset.impScope || 'all';
-    showImportStep(2);
-  });
-});
-
-/* escolher ficheiro no step 2 */
-if (impFile) {
-  impFile.addEventListener('change', async () => {
-    impJson = null;
-    if (goImportModeBtn) goImportModeBtn.disabled = true;
-
-    const f = impFile.files?.[0];
-    if (!f) return;
-
-    const text = await f.text();
-    const parsed = safeParseJSON(text);
-    if (!parsed || typeof parsed !== 'object' || !parsed.data) {
-      alert('Ficheiro inválido. Exporta primeiro na app para garantir o formato.');
-      return;
-    }
-
-    impJson = parsed;
-    if (goImportModeBtn) goImportModeBtn.disabled = false;
-  });
-}
-
-if (goImportModeBtn) goImportModeBtn.onclick = () => showImportStep(3);
-
-/* merge helpers (sem perder relações) */
-function remapId(oldId, map) {
-  if (!oldId) return oldId;
-  return map.get(oldId) || oldId;
-}
-
-function mergeArrayById(existing, incoming, { remap = null } = {}) {
-  const out = [...existing];
-  const seen = new Set(existing.map(x => x?.id).filter(Boolean));
-  const idMap = new Map();
-
-  for (const item of (incoming || [])) {
-    if (!item || typeof item !== 'object') continue;
-
-    let newItem = { ...item };
-
-    if (!newItem.id || seen.has(newItem.id)) {
-      const newId = uid();
-      if (newItem.id) idMap.set(newItem.id, newId);
-      newItem.id = newId;
-    }
-
-    if (remap) newItem = remap(newItem, idMap);
-
-    out.push(newItem);
-    seen.add(newItem.id);
-  }
-
-  return { merged: out, idMap };
-}
-
-/* ===== MediaStore import helpers ===== */
-function mergeMediaStoreReplace(incomingStore) {
-  if (!incomingStore || typeof incomingStore !== 'object') return;
-  mediaStoreSave(incomingStore); // substitui tudo
-}
-
-function mergeMediaStoreAdd(incomingStore) {
-  if (!incomingStore || typeof incomingStore !== 'object') return;
-
-  const existing = mediaStoreLoad();
-  const merged = { ...existing };
-
-  // se houver conflito de IDs, geramos novos IDs e atualizamos refs depois
-  const idMap = new Map();
-
-  for (const [mid, item] of Object.entries(incomingStore)) {
-    if (!item || typeof item !== 'object') continue;
-
-    if (!merged[mid]) {
-      merged[mid] = item;
-      continue;
-    }
-
-    // conflito -> novo id
-    const newId = uid();
-    idMap.set(mid, newId);
-    merged[newId] = item;
-  }
-
-  mediaStoreSave(merged);
-  return idMap; // pode ser undefined se não houve conflitos
-}
-
-function remapMediaRefsInTrainAndFood(data, mediaIdMap) {
-  if (!mediaIdMap || !(mediaIdMap instanceof Map) || mediaIdMap.size === 0) return;
-
-  // treino
-  const exs = data?.train?.exercises || [];
-  exs.forEach(ex => {
-    (ex.media || []).forEach(m => {
-      if (m?.ref && mediaIdMap.has(m.ref)) m.ref = mediaIdMap.get(m.ref);
-    });
-  });
-
-  // alimentação
-  const meals = data?.food?.meals || [];
-  meals.forEach(meal => {
-    (meal.media || []).forEach(m => {
-      if (m?.ref && mediaIdMap.has(m.ref)) m.ref = mediaIdMap.get(m.ref);
-    });
-  });
-}
-
-function applyReplace(scope, data) {
-  // media (se existir no ficheiro)
-  if (data?.media?.store) {
-    mergeMediaStoreReplace(data.media.store);
-  }
-
-  if (scope === 'all' || scope === 'train') {
-    const t = data?.train;
-    if (t?.days && t?.exercises) {
-      saveDays(t.days);
-      saveExercises(t.exercises);
-    }
-  }
-  if (scope === 'all' || scope === 'food') {
-    const f = data?.food;
-    if (f?.mealtypes && f?.meals) {
-      saveMealTypes(f.mealtypes);
-      saveMeals(f.meals);
-    }
-  }
-  if (scope === 'all' || scope === 'progress') {
-    const p = data?.progress;
-    if (p?.records) {
-      saveProgress(p.records);
-    }
-  }
-}
-
-function applyAdd(scope, data) {
-  // media (se existir no ficheiro): juntar no store, com remap se houver conflitos
-  let mediaIdMap = null;
-  if (data?.media?.store) {
-    mediaIdMap = mergeMediaStoreAdd(data.media.store) || null;
-    // se houve remap de IDs do MediaStore, atualizamos refs nos dados a importar
-    remapMediaRefsInTrainAndFood(data, mediaIdMap);
-  }
-
-  if (scope === 'all' || scope === 'train') {
-    const t = data?.train;
-    if (t?.days && t?.exercises) {
-      const daysRes = mergeArrayById(loadDays(), t.days);
-      const dayIdMap = daysRes.idMap;
-
-      const exRes = mergeArrayById(loadExercises(), t.exercises, {
-        remap: (it) => ({
-          ...it,
-          dayId: remapId(it.dayId, dayIdMap)
-        })
-      });
-
-      saveDays(daysRes.merged);
-      saveExercises(exRes.merged);
-    }
-  }
-
-  if (scope === 'all' || scope === 'food') {
-    const f = data?.food;
-    if (f?.mealtypes && f?.meals) {
-      const typesRes = mergeArrayById(loadMealTypes(), f.mealtypes);
-      const typeIdMap = typesRes.idMap;
-
-      const mealsRes = mergeArrayById(loadMeals(), f.meals, {
-        remap: (it) => ({
-          ...it,
-          mealTypeId: remapId(it.mealTypeId, typeIdMap)
-        })
-      });
-
-      saveMealTypes(typesRes.merged);
-      saveMeals(mealsRes.merged);
-    }
-  }
-
-  if (scope === 'all' || scope === 'progress') {
-    const p = data?.progress;
-    if (p?.records) {
-      const res = mergeArrayById(loadProgress(), p.records);
-      saveProgress(res.merged);
-    }
-  }
-}
-
-function afterImportRefresh() {
-  renderDays();
-  renderMealTypes();
-  renderProgress();
-
-  if (qs('#screenDay')?.classList.contains('active')) renderExercises();
-  if (qs('#screenMealType')?.classList.contains('active')) renderMeals();
-  if (qs('#screenExercise')?.classList.contains('active')) {
-    const ex = getCurrentExercise();
-    if (ex) renderExerciseMedia();
-  }
-  if (qs('#screenMeal')?.classList.contains('active')) {
-    const m = getCurrentMeal();
-    if (m) renderMealMedia();
-  }
-}
-
-function doImport(mode) {
-  if (!impJson?.data) {
-    alert('Nenhum ficheiro carregado.');
-    return;
-  }
-
-  const data = impJson.data;
-
-  const hasTrain = !!data.train;
-  const hasFood = !!data.food;
-  const hasProg = !!data.progress;
-
-  if (impScope === 'train' && !hasTrain) return alert('Este ficheiro não tem dados de treino.');
-  if (impScope === 'food' && !hasFood) return alert('Este ficheiro não tem dados de alimentação.');
-  if (impScope === 'progress' && !hasProg) return alert('Este ficheiro não tem dados de progresso.');
-  if (impScope === 'all' && !(hasTrain || hasFood || hasProg)) return alert('Este ficheiro não tem dados reconhecidos.');
-
-  if (mode === 'replace') applyReplace(impScope, data);
-  else applyAdd(impScope, data);
-
-  afterImportRefresh();
-  alert('Importação concluída ✅');
-
-  resetImportFlow();
-  closeModal(modalImport);
-}
-
-if (impReplaceBtn) impReplaceBtn.onclick = () => {
-  const ok = confirm('Substituir vai apagar os dados existentes nessa secção. Queres continuar?');
-  if (!ok) return;
-  doImport('replace');
-};
-
-if (impAddBtn) impAddBtn.onclick = () => doImport('add');
-
-/* =========================================================
-   LIMPEZA: remover media não usados (sem apagar os usados)
-========================================================= */
-function collectUsedMediaIds() {
-  const used = new Set();
-
-  // treino
-  const exs = loadExercises();
-  exs.forEach(ex => {
-    (ex.media || []).forEach(m => {
-      if (m?.ref) used.add(m.ref);
-    });
-  });
-
-  // alimentação
-  const meals = loadMeals();
-  meals.forEach(meal => {
-    (meal.media || []).forEach(m => {
-      if (m?.ref) used.add(m.ref);
-    });
-  });
-
-  return used;
-}
-
-function countMediaStoreStats(store) {
-  const ids = Object.keys(store || {});
-  let bytes = 0;
-
-  for (const id of ids) {
-    const src = store?.[id]?.src || '';
-    bytes += approxBytesFromDataURL(src);
-  }
-
-  return { count: ids.length, approxBytes: bytes };
-}
-
-function cleanUnusedMedia({ dryRun = true } = {}) {
-  const store = mediaStoreLoad();
-  const used = collectUsedMediaIds();
-
-  const allIds = Object.keys(store || {});
-  const unused = allIds.filter(id => !used.has(id));
-
-  if (dryRun) {
-    const before = countMediaStoreStats(store);
-    const afterStore = { ...store };
-    unused.forEach(id => { delete afterStore[id]; });
-    const after = countMediaStoreStats(afterStore);
-    return { unusedCount: unused.length, before, after };
-  }
-
-  // executar mesmo
-  const updated = { ...store };
-  unused.forEach(id => { delete updated[id]; });
-  mediaStoreSave(updated);
-
-  const before = countMediaStoreStats(store);
-  const after = countMediaStoreStats(updated);
-  return { unusedCount: unused.length, before, after };
-}
-
-/* ===== UI da limpeza (requer HTML do modal clean) ===== */
-function updateCleanModalInfo() {
-  const info = qs('#clean-info');
-  if (!info) return;
-
-  const store = mediaStoreLoad();
-  const stats = countMediaStoreStats(store);
-  const dry = cleanUnusedMedia({ dryRun: true });
-
-  const mb = (n) => (n / (1024*1024)).toFixed(2);
-
-  info.innerHTML = `
-    <div style="font-weight:800;margin-bottom:6px;">Estado do armazenamento</div>
-    <div style="color:#6b7280;font-size:13px;line-height:18px;">
-      Itens no MediaStore: <b>${stats.count}</b><br>
-      Tamanho aprox.: <b>${mb(stats.approxBytes)} MB</b><br><br>
-      Itens não usados (podem ser limpos): <b>${dry.unusedCount}</b><br>
-      Se limpares, fica aprox.: <b>${mb(dry.after.approxBytes)} MB</b>
-    </div>
-  `;
-}
-
-/* Abrir/fechar modal de limpeza */
-if (openCleanBtn) openCleanBtn.onclick = () => {
-  hideMoreMenu();
-  updateCleanModalInfo();
-  openModal(modalClean);
-};
-
-if (qs('#close-clean-modal')) qs('#close-clean-modal').onclick = () => closeModal(modalClean);
-if (modalClean) modalClean.addEventListener('click', e => { if (e.target === modalClean) closeModal(modalClean); });
-
-if (qs('#back-clean')) qs('#back-clean').onclick = () => {
-  closeModal(modalClean);
-/* =========================================================
    App-Fitness — script.js (PARTE 4/4) ✅ CORRIGIDA
    - Lightbox open (treino + alimentação) COM MediaStore (refs)
    - Progresso (SEM duplicar loadProgress/saveProgress)
@@ -2133,6 +1295,7 @@ function openMealMediaLightbox(title, mediaLocalId) {
   lb.items = items.map(x => ({ ...x }));
   lb.index = idx2;
 
+  // guardar notas no item local (não no MediaStore)
   lb.saveNotes = (id, value) => {
     const mealNow = getCurrentMeal();
     if (!mealNow) return;
@@ -2169,7 +1332,7 @@ if (qs('#add-record-btn')) {
   qs('#add-record-btn').onclick = () => {
     editingId = null;
     qs('#modal-progress-title').textContent = 'Novo Registo';
-    qs('#progress-form').reset?.();
+    qs('#progress-form')?.reset?.();
     openModal(modalProgress);
   };
 }
@@ -2349,12 +1512,12 @@ const moreMenu = qs('#more-menu');
 
 const openExportBtn = qs('#open-export');
 const openImportBtn = qs('#open-import');
-const openCleanBtn  = qs('#open-clean'); // ✅ novo botão (HTML tem de ter)
+const openCleanBtn  = qs('#open-clean'); // (HTML tem de ter)
 const closeMoreBtn = qs('#close-more');
 
 const modalExport = qs('#modal-export');
 const modalImport = qs('#modal-import');
-const modalClean  = qs('#modal-clean');  // ✅ novo modal (HTML tem de ter)
+const modalClean  = qs('#modal-clean');  // (HTML tem de ter)
 
 /* --- helpers export/import --- */
 function safeParseJSON(text) {
@@ -2439,7 +1602,7 @@ function buildExportPayload(scope, includeMedia) {
     };
   }
 
-  // ✅ CORRIGIDO: store vem de loadMediaStore()
+  // ✅ CORRETO: store vem do loadMediaStore() (formato {version, items})
   if (includeMedia) {
     payload.data.media = {
       store: loadMediaStore()
@@ -2578,7 +1741,13 @@ function mergeArrayById(existing, incoming, { remap = null } = {}) {
 /* ===== MediaStore import helpers (CORRIGIDO p/ formato {version, items}) ===== */
 function mergeMediaStoreReplace(incomingStore) {
   if (!incomingStore || typeof incomingStore !== 'object') return;
-  saveMediaStore(incomingStore); // substitui tudo
+
+  // tolera formato antigo (obj direto) e normaliza
+  const normalized = incomingStore.items
+    ? { version: incomingStore.version || 1, items: incomingStore.items || {} }
+    : { version: 1, items: incomingStore || {} };
+
+  saveMediaStore(normalized);
 }
 
 function mergeMediaStoreAdd(incomingStore) {
@@ -2590,10 +1759,10 @@ function mergeMediaStoreAdd(incomingStore) {
     items: { ...(existing.items || {}) }
   };
 
-  const incomingItems = incomingStore.items || incomingStore; // tolera formato antigo
+  const incomingItems = incomingStore.items ? (incomingStore.items || {}) : (incomingStore || {});
   const idMap = new Map();
 
-  for (const [mid, item] of Object.entries(incomingItems || {})) {
+  for (const [mid, item] of Object.entries(incomingItems)) {
     if (!item || typeof item !== 'object') continue;
 
     if (!merged.items[mid]) {
@@ -2758,10 +1927,8 @@ function approxBytesFromDataURL(dataUrl) {
 
 function collectUsedMediaIds() {
   const used = new Set();
-
   loadExercises().forEach(ex => (ex.media || []).forEach(m => { if (m?.ref) used.add(m.ref); }));
   loadMeals().forEach(meal => (meal.media || []).forEach(m => { if (m?.ref) used.add(m.ref); }));
-
   return used;
 }
 
