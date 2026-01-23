@@ -15,6 +15,13 @@
 
   <!-- HOME -->
   <div id="home" class="screen active">
+
+    <!-- TOP BAR (NOVO) -->
+    <div class="home-topbar">
+      <div></div>
+      <button id="more-btn" class="more-btn" aria-label="Mais opções">⋯</button>
+    </div>
+
     <h1 class="home-title">Minha App de Fitness</h1>
     <p class="home-subtitle">Escolha uma opção</p>
 
@@ -265,7 +272,6 @@
     <div class="lightbox-content">
       <button type="button" class="lightbox-close">×</button>
 
-      <!-- BOTÕES DE NAVEGAÇÃO (NOVO) -->
       <button type="button" class="lightbox-nav prev" aria-label="Anterior">‹</button>
       <button type="button" class="lightbox-nav next" aria-label="Seguinte">›</button>
 
@@ -273,6 +279,82 @@
       <img id="lightbox-img" style="display:none;" />
       <video id="lightbox-video" controls style="display:none;"></video>
       <textarea id="lightbox-notes" placeholder="Notas (opcional para esta foto/vídeo)"></textarea>
+    </div>
+  </div>
+
+  <!-- ================== MENU ⋯ (NOVO) ================== -->
+  <div id="more-menu" class="more-menu" aria-hidden="true">
+    <button type="button" class="more-item" id="open-export">Exportar</button>
+    <button type="button" class="more-item" id="open-import">Importar</button>
+    <button type="button" class="more-item" id="close-more">Fechar</button>
+  </div>
+
+  <!-- ================== MODAL: EXPORTAR (NOVO) ================== -->
+  <div id="modal-export" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>Exportar</h2>
+        <button type="button" class="modal-close" id="close-export-modal">×</button>
+      </div>
+
+      <p class="modal-sub">Escolhe o que queres exportar. Vai ser descarregado um ficheiro .json.</p>
+
+      <div class="menu-list">
+        <button type="button" class="btn-primary full-width" id="exp-all">Exportar tudo</button>
+        <button type="button" class="btn-primary full-width" id="exp-train">Só Treino</button>
+        <button type="button" class="btn-primary full-width" id="exp-food">Só Alimentação</button>
+        <button type="button" class="btn-primary full-width" id="exp-progress">Só Progresso</button>
+      </div>
+
+      <button type="button" class="back-inline" id="back-export">← Voltar</button>
+    </div>
+  </div>
+
+  <!-- ================== MODAL: IMPORTAR (NOVO) ================== -->
+  <div id="modal-import" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="import-title">Importar</h2>
+        <button type="button" class="modal-close" id="close-import-modal">×</button>
+      </div>
+
+      <!-- STEP 1: escolher categoria -->
+      <div id="import-step-1">
+        <p class="modal-sub">Escolhe o que queres importar.</p>
+        <div class="menu-list">
+          <button type="button" class="btn-primary full-width" data-imp-scope="all">Importar tudo</button>
+          <button type="button" class="btn-primary full-width" data-imp-scope="train">Só Treino</button>
+          <button type="button" class="btn-primary full-width" data-imp-scope="food">Só Alimentação</button>
+          <button type="button" class="btn-primary full-width" data-imp-scope="progress">Só Progresso</button>
+        </div>
+        <button type="button" class="back-inline" id="back-import-1">← Voltar</button>
+      </div>
+
+      <!-- STEP 2: escolher ficheiro -->
+      <div id="import-step-2" style="display:none;">
+        <p class="modal-sub">Escolhe o ficheiro .json para importar.</p>
+
+        <input type="file" id="import-file" accept="application/json" />
+        <div style="height:10px"></div>
+
+        <button type="button" class="btn-primary full-width" id="go-import-mode" disabled>Continuar</button>
+        <button type="button" class="back-inline" id="back-import-2">← Voltar</button>
+      </div>
+
+      <!-- STEP 3: modo (substituir/adicionar) -->
+      <div id="import-step-3" style="display:none;">
+        <p class="modal-sub">
+          Queres <strong>Substituir</strong> o que existe (apaga e mete o do ficheiro)
+          ou <strong>Adicionar</strong> (junta ao que já tens)?
+        </p>
+
+        <div class="menu-list">
+          <button type="button" class="btn-danger full-width" id="imp-replace">Substituir</button>
+          <button type="button" class="btn-primary full-width" id="imp-add">Adicionar</button>
+        </div>
+
+        <button type="button" class="back-inline" id="back-import-3">← Voltar</button>
+      </div>
     </div>
   </div>
 
