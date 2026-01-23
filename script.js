@@ -1,3 +1,9 @@
+/* =========================================================
+   App-Fitness — script.js (PARTE 1/4)
+   - Treino (Dias + Exercícios)
+   - Base (nav, helpers, storage, modais base)
+========================================================= */
+
 const qs = s => document.querySelector(s);
 const qsa = s => document.querySelectorAll(s);
 
@@ -6,13 +12,14 @@ const uid = () => (crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`);
 /* ===================== NAVEGAÇÃO ===================== */
 function openScreen(id) {
   qsa('.screen').forEach(s => s.classList.remove('active'));
-  qs(`#${id}`).classList.add('active');
+  const el = qs(`#${id}`);
+  if (el) el.classList.add('active');
 }
 
+/* cards/botões com data-screen */
 qsa('[data-screen]').forEach(btn => {
   btn.addEventListener('click', () => openScreen(btn.dataset.screen));
 });
-
 qsa('[data-screen]').forEach(el => {
   el.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -71,6 +78,31 @@ function compressImageToDataURL(file, { maxSize = 1280, quality = 0.72 } = {}) {
   });
 }
 
+/* ===================== MODAIS (BASE) ===================== */
+const modalDay = qs('#modal-day');
+const modalEx = qs('#modal-ex');
+const modalProgress = qs('#modal-progress');
+
+function openModal(el) { if (el) el.style.display = 'flex'; }
+function closeModal(el) { if (el) el.style.display = 'none'; }
+
+if (qs('#close-day-modal')) qs('#close-day-modal').onclick = () => closeModal(modalDay);
+if (qs('#close-ex-modal')) qs('#close-ex-modal').onclick = () => closeModal(modalEx);
+
+if (qs('#close-progress-modal')) qs('#close-progress-modal').onclick = () => {
+  try { editingId = null; } catch {}
+  closeModal(modalProgress);
+};
+
+if (modalDay) modalDay.addEventListener('click', e => { if (e.target === modalDay) closeModal(modalDay); });
+if (modalEx) modalEx.addEventListener('click', e => { if (e.target === modalEx) closeModal(modalEx); });
+if (modalProgress) modalProgress.addEventListener('click', e => {
+  if (e.target === modalProgress) {
+    try { editingId = null; } catch {}
+    closeModal(modalProgress);
+  }
+});
+
 /* ===================== TREINO: ESTADO ===================== */
 let currentDayId = null;
 let currentExId = null;
@@ -78,34 +110,12 @@ let currentExId = null;
 let editingDayId = null;
 let editingExId = null;
 
-/* ===================== MODAIS ===================== */
-const modalDay = qs('#modal-day');
-const modalEx = qs('#modal-ex');
-const modalProgress = qs('#modal-progress');
-
-function openModal(el) { el.style.display = 'flex'; }
-function closeModal(el) { el.style.display = 'none'; }
-
-qs('#close-day-modal').onclick = () => closeModal(modalDay);
-qs('#close-ex-modal').onclick = () => closeModal(modalEx);
-qs('#close-progress-modal').onclick = () => {
-  try { editingId = null; } catch {}
-  closeModal(modalProgress);
-};
-
-modalDay.addEventListener('click', e => { if (e.target === modalDay) closeModal(modalDay); });
-modalEx.addEventListener('click', e => { if (e.target === modalEx) closeModal(modalEx); });
-modalProgress.addEventListener('click', e => {
-  if (e.target === modalProgress) {
-    try { editingId = null; } catch {}
-    closeModal(modalProgress);
-  }
-});
-
 /* ===================== TREINO: DIAS ===================== */
 const daysList = qs('#days-list');
 
 function renderDays() {
+  if (!daysList) return;
+
   const days = loadDays();
   const exs = loadExercises();
 
@@ -191,35 +201,41 @@ function renderDays() {
   }
 }
 
-qs('#add-day-btn').onclick = () => {
-  editingDayId = null;
-  qs('#modal-day-title').textContent = 'Novo Dia de Treino';
-  qs('#day-name').value = '';
-  openModal(modalDay);
-};
+if (qs('#add-day-btn')) {
+  qs('#add-day-btn').onclick = () => {
+    editingDayId = null;
+    qs('#modal-day-title').textContent = 'Novo Dia de Treino';
+    qs('#day-name').value = '';
+    openModal(modalDay);
+  };
+}
 
-qs('#save-day').onclick = () => {
-  const name = qs('#day-name').value.trim();
-  if (!name) return;
+if (qs('#save-day')) {
+  qs('#save-day').onclick = () => {
+    const name = qs('#day-name').value.trim();
+    if (!name) return;
 
-  const days = loadDays();
+    const days = loadDays();
 
-  if (editingDayId) {
-    const idx = days.findIndex(d => d.id === editingDayId);
-    if (idx !== -1) days[idx].title = name;
-  } else {
-    days.push({ id: uid(), title: name, createdAt: Date.now() });
-  }
+    if (editingDayId) {
+      const idx = days.findIndex(d => d.id === editingDayId);
+      if (idx !== -1) days[idx].title = name;
+    } else {
+      days.push({ id: uid(), title: name, createdAt: Date.now() });
+    }
 
-  saveDays(days);
-  closeModal(modalDay);
-  renderDays();
-};
+    saveDays(days);
+    closeModal(modalDay);
+    renderDays();
+  };
+}
 
 /* ===================== TREINO: EXERCÍCIOS ===================== */
 const exList = qs('#ex-list');
 
 function renderExercises() {
+  if (!exList) return;
+
   const exs = loadExercises().filter(x => x.dayId === currentDayId);
   const days = loadDays();
   const day = days.find(d => d.id === currentDayId);
@@ -337,49 +353,61 @@ function renderExercises() {
   }
 }
 
-qs('#back-to-days').onclick = () => {
-  openScreen('screen1');
-  renderDays();
-};
+if (qs('#back-to-days')) {
+  qs('#back-to-days').onclick = () => {
+    openScreen('screen1');
+    renderDays();
+  };
+}
 
-qs('#add-ex-btn').onclick = () => {
-  editingExId = null;
-  qs('#modal-ex-title').textContent = 'Novo Exercício';
-  qs('#ex-name').value = '';
-  qs('#ex-quick').value = '';
-  openModal(modalEx);
-};
+if (qs('#add-ex-btn')) {
+  qs('#add-ex-btn').onclick = () => {
+    editingExId = null;
+    qs('#modal-ex-title').textContent = 'Novo Exercício';
+    qs('#ex-name').value = '';
+    qs('#ex-quick').value = '';
+    openModal(modalEx);
+  };
+}
 
-qs('#save-ex').onclick = () => {
-  const name = qs('#ex-name').value.trim();
-  const quick = qs('#ex-quick').value.trim();
-  if (!name) return;
+if (qs('#save-ex')) {
+  qs('#save-ex').onclick = () => {
+    const name = qs('#ex-name').value.trim();
+    const quick = qs('#ex-quick').value.trim();
+    if (!name) return;
 
-  const all = loadExercises();
+    const all = loadExercises();
 
-  if (editingExId) {
-    const idx = all.findIndex(x => x.id === editingExId);
-    if (idx !== -1) {
-      all[idx].name = name;
-      all[idx].notes = quick;
+    if (editingExId) {
+      const idx = all.findIndex(x => x.id === editingExId);
+      if (idx !== -1) {
+        all[idx].name = name;
+        all[idx].notes = quick;
+      }
+    } else {
+      all.push({
+        id: uid(),
+        dayId: currentDayId,
+        name,
+        notes: quick,
+        done: false,
+        media: [],
+        createdAt: Date.now()
+      });
     }
-  } else {
-    all.push({
-      id: uid(),
-      dayId: currentDayId,
-      name,
-      notes: quick,
-      done: false,
-      media: [],
-      createdAt: Date.now()
-    });
-  }
 
-  saveExercises(all);
-  closeModal(modalEx);
-  renderExercises();
-  renderDays();
-};
+    saveExercises(all);
+    closeModal(modalEx);
+    renderExercises();
+    renderDays();
+  };
+}
+
+/* =========================================================
+   App-Fitness — script.js (PARTE 2/4)
+   - Detalhe do Exercício (upload + notas + concluído)
+   - Plano Alimentar (Tipos + Refeições + detalhe)
+========================================================= */
 
 /* ===================== TREINO: DETALHE DO EXERCÍCIO ===================== */
 const exTitle = qs('#ex-title');
@@ -405,92 +433,106 @@ function openExerciseDetail() {
   const ex = getCurrentExercise();
   if (!ex) return;
 
-  exTitle.textContent = ex.name || 'Exercício';
-  exNotes.value = ex.notesLong || '';
-  exDone.checked = !!ex.done;
+  if (exTitle) exTitle.textContent = ex.name || 'Exercício';
+  if (exNotes) exNotes.value = ex.notesLong || '';
+  if (exDone) exDone.checked = !!ex.done;
 
   renderExerciseMedia();
   openScreen('screenExercise');
 }
 
-qs('#back-to-day').onclick = () => {
-  openScreen('screenDay');
-  renderExercises();
-  renderDays();
-};
+if (qs('#back-to-day')) {
+  qs('#back-to-day').onclick = () => {
+    openScreen('screenDay');
+    renderExercises();
+    renderDays();
+  };
+}
 
-qs('#edit-ex-btn').onclick = () => {
-  const ex = getCurrentExercise();
-  if (!ex) return;
+if (qs('#edit-ex-btn')) {
+  qs('#edit-ex-btn').onclick = () => {
+    const ex = getCurrentExercise();
+    if (!ex) return;
 
-  editingExId = ex.id;
-  qs('#modal-ex-title').textContent = 'Editar Exercício';
-  qs('#ex-name').value = ex.name || '';
-  qs('#ex-quick').value = ex.notes || '';
-  openModal(modalEx);
-};
+    editingExId = ex.id;
+    qs('#modal-ex-title').textContent = 'Editar Exercício';
+    qs('#ex-name').value = ex.name || '';
+    qs('#ex-quick').value = ex.notes || '';
+    openModal(modalEx);
+  };
+}
 
-qs('#delete-ex-btn').onclick = () => {
-  const ex = getCurrentExercise();
-  if (!ex) return;
+if (qs('#delete-ex-btn')) {
+  qs('#delete-ex-btn').onclick = () => {
+    const ex = getCurrentExercise();
+    if (!ex) return;
 
-  const ok = confirm('Eliminar este exercício?');
-  if (!ok) return;
+    const ok = confirm('Eliminar este exercício?');
+    if (!ok) return;
 
-  const all = loadExercises().filter(x => x.id !== currentExId);
-  saveExercises(all);
+    const all = loadExercises().filter(x => x.id !== currentExId);
+    saveExercises(all);
 
-  openScreen('screenDay');
-  renderExercises();
-  renderDays();
-};
+    openScreen('screenDay');
+    renderExercises();
+    renderDays();
+  };
+}
 
-exNotes.addEventListener('input', () => {
-  saveCurrentExercise({ notesLong: exNotes.value });
-});
+if (exNotes) {
+  exNotes.addEventListener('input', () => {
+    saveCurrentExercise({ notesLong: exNotes.value });
+  });
+}
 
-exDone.addEventListener('change', () => {
-  saveCurrentExercise({ done: exDone.checked });
-  renderDays();
-});
+if (exDone) {
+  exDone.addEventListener('change', () => {
+    saveCurrentExercise({ done: exDone.checked });
+    renderDays();
+    renderExercises();
+  });
+}
 
 /* Upload media no detalhe */
-exMediaInput.onchange = async () => {
-  const ex = getCurrentExercise();
-  if (!ex) return;
+if (exMediaInput) {
+  exMediaInput.onchange = async () => {
+    const ex = getCurrentExercise();
+    if (!ex) return;
 
-  const mediaArr = ex.media || [];
+    const mediaArr = ex.media || [];
 
-  for (const file of exMediaInput.files) {
-    if (file.type.startsWith('image')) {
-      try {
-        const src = await compressImageToDataURL(file, { maxSize: 1280, quality: 0.72 });
-        mediaArr.push({ id: uid(), type: 'image/jpeg', src, notes: '' });
-      } catch (e) {
-        console.error(e);
-        alert('Não foi possível processar esta imagem.');
+    for (const file of exMediaInput.files) {
+      if (file.type.startsWith('image')) {
+        try {
+          const src = await compressImageToDataURL(file, { maxSize: 1280, quality: 0.72 });
+          mediaArr.push({ id: uid(), type: 'image/jpeg', src, notes: '' });
+        } catch (e) {
+          console.error(e);
+          alert('Não foi possível processar esta imagem.');
+        }
+      } else if (file.type.startsWith('video')) {
+        const reader = new FileReader();
+        await new Promise(resolve => {
+          reader.onload = e => {
+            mediaArr.push({ id: uid(), type: file.type, src: e.target.result, notes: '' });
+            resolve();
+          };
+          reader.readAsDataURL(file);
+        });
       }
-    } else if (file.type.startsWith('video')) {
-      const reader = new FileReader();
-      await new Promise(resolve => {
-        reader.onload = e => {
-          mediaArr.push({ id: uid(), type: file.type, src: e.target.result, notes: '' });
-          resolve();
-        };
-        reader.readAsDataURL(file);
-      });
     }
-  }
 
-  saveCurrentExercise({ media: mediaArr });
-  exMediaInput.value = '';
-  renderExerciseMedia();
-  renderExercises();
-};
+    saveCurrentExercise({ media: mediaArr });
+    exMediaInput.value = '';
+    renderExerciseMedia();
+    renderExercises();
+    renderDays();
+  };
+}
 
 function renderExerciseMedia() {
   const ex = getCurrentExercise();
-  if (!ex) return;
+  if (!ex || !exMediaGrid) return;
 
   exMediaGrid.innerHTML = '';
   const mediaArr = ex.media || [];
@@ -513,6 +555,7 @@ function renderExerciseMedia() {
       saveCurrentExercise({ media: updated });
       renderExerciseMedia();
       renderExercises();
+      renderDays();
     };
 
     wrap.append(el, del);
@@ -521,7 +564,7 @@ function renderExerciseMedia() {
 }
 
 /* =========================================================
-   PLANO ALIMENTAR (NOVO)
+   PLANO ALIMENTAR
 ========================================================= */
 
 /* STORAGE (ALIMENTAÇÃO) */
@@ -549,8 +592,8 @@ const modalMealType = qs('#modal-mealtype');
 const modalMeal = qs('#modal-meal');
 
 /* MODAIS — abrir/fechar */
-function openModalX(el){ el.style.display = 'flex'; }
-function closeModalX(el){ el.style.display = 'none'; }
+function openModalX(el){ if (el) el.style.display = 'flex'; }
+function closeModalX(el){ if (el) el.style.display = 'none'; }
 
 if (qs('#close-mealtype-modal')) qs('#close-mealtype-modal').onclick = () => closeModalX(modalMealType);
 if (qs('#close-meal-modal')) qs('#close-meal-modal').onclick = () => closeModalX(modalMeal);
@@ -566,7 +609,6 @@ function renderMealTypes() {
   const meals = loadMeals();
 
   mealTypesList.innerHTML = '';
-
   const sorted = [...types].sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
 
   sorted.forEach(t => {
@@ -617,7 +659,6 @@ function renderMealTypes() {
 
       saveMealTypes(loadMealTypes().filter(x => x.id !== t.id));
       saveMeals(loadMeals().filter(m => m.mealTypeId !== t.id));
-
       renderMealTypes();
     };
 
@@ -670,7 +711,13 @@ if (qs('#save-mealtype')) {
     closeModalX(modalMealType);
     renderMealTypes();
   };
-}
+      }
+
+/* =========================================================
+   App-Fitness — script.js (PARTE 3/4)
+   - Plano Alimentar (Refeições + detalhe + upload)
+   - Lightbox (galeria com swipe + setas + click)
+========================================================= */
 
 /* ---------- REFEIÇÕES DO TIPO ---------- */
 function renderMeals() {
@@ -958,7 +1005,7 @@ function renderMealMedia() {
   });
 }
 
-/* ===================== LIGHTBOX: GALERIA (SWIPE + CLICK) ===================== */
+/* ===================== LIGHTBOX: GALERIA (SWIPE + CLICK + NAV) ===================== */
 const lb = {
   open: false,
   title: '',
@@ -974,14 +1021,14 @@ function lbShow() {
   const notesEl = qs('#lightbox-notes');
 
   const item = lb.items[lb.index];
-  if (!item) return;
+  if (!item || !box || !img || !vid || !notesEl) return;
 
   box.style.display = 'flex';
   qs('#lightbox-title').innerText = lb.title || '';
 
   img.style.display = 'none';
   vid.style.display = 'none';
-  vid.pause?.();
+  try { vid.pause(); } catch {}
 
   if (item.type.startsWith('image')) {
     img.src = item.src;
@@ -1060,6 +1107,14 @@ function lbBindMediaClickNext() {
 
 lbBindMediaClickNext();
 
+/* =========================================================
+   App-Fitness — script.js (PARTE 4/4)
+   - Lightbox open (treino + alimentação)
+   - Progresso
+   - Menu ⋯ + Exportar/Importar (com Voltar e Replace/Add)
+   - INIT
+========================================================= */
+
 /* ===================== LIGHTBOX TREINOS (ABRIR COM LISTA) ===================== */
 function openMediaLightbox(title, mediaId) {
   const ex = getCurrentExercise();
@@ -1115,11 +1170,15 @@ function openMealMediaLightbox(title, mediaId) {
 }
 
 /* FECHAR LIGHTBOX */
-qs('.lightbox-close').onclick = () => {
-  qs('#lightbox').style.display = 'none';
-  qs('#lightbox-video').pause();
-  lb.open = false;
-};
+if (qs('.lightbox-close')) {
+  qs('.lightbox-close').onclick = () => {
+    const box = qs('#lightbox');
+    const vid = qs('#lightbox-video');
+    if (box) box.style.display = 'none';
+    try { vid.pause(); } catch {}
+    lb.open = false;
+  };
+}
 
 /* ===================== PROGRESSO ===================== */
 let chart;
@@ -1142,44 +1201,52 @@ const loadProgress = () => {
 
 const saveProgress = d => localStorage.setItem('progress', JSON.stringify(d));
 
-qs('#add-record-btn').onclick = () => {
-  editingId = null;
-  qs('#modal-progress-title').textContent = 'Novo Registo';
-  qs('#progress-form').reset?.();
-  openModal(modalProgress);
-};
-
-qs('#cancel-btn').onclick = () => {
-  editingId = null;
-  closeModal(modalProgress);
-};
-
-qs('#progress-form').onsubmit = e => {
-  e.preventDefault();
-  const data = loadProgress();
-
-  const payload = {
-    date: qs('#date').value,
-    weight: parseFloat(qs('#weight').value),
-    notes: qs('#notes').value
+if (qs('#add-record-btn')) {
+  qs('#add-record-btn').onclick = () => {
+    editingId = null;
+    qs('#modal-progress-title').textContent = 'Novo Registo';
+    qs('#progress-form').reset?.();
+    openModal(modalProgress);
   };
+}
 
-  if (editingId) {
-    const idx = data.findIndex(x => x.id === editingId);
-    if (idx !== -1) data[idx] = { ...data[idx], ...payload };
-  } else {
-    data.push({ id: uid(), ...payload });
-  }
+if (qs('#cancel-btn')) {
+  qs('#cancel-btn').onclick = () => {
+    editingId = null;
+    closeModal(modalProgress);
+  };
+}
 
-  saveProgress(data);
-  editingId = null;
-  e.target.reset();
-  closeModal(modalProgress);
-  renderProgress();
-};
+if (qs('#progress-form')) {
+  qs('#progress-form').onsubmit = e => {
+    e.preventDefault();
+    const data = loadProgress();
+
+    const payload = {
+      date: qs('#date').value,
+      weight: parseFloat(qs('#weight').value),
+      notes: qs('#notes').value
+    };
+
+    if (editingId) {
+      const idx = data.findIndex(x => x.id === editingId);
+      if (idx !== -1) data[idx] = { ...data[idx], ...payload };
+    } else {
+      data.push({ id: uid(), ...payload });
+    }
+
+    saveProgress(data);
+    editingId = null;
+    e.target.reset();
+    closeModal(modalProgress);
+    renderProgress();
+  };
+}
 
 function renderProgress() {
   const list = qs('#progress-list');
+  if (!list) return;
+
   const data = loadProgress();
   list.innerHTML = '';
 
@@ -1264,6 +1331,8 @@ function renderProgress() {
 
 function drawChart(data) {
   const canvas = qs('#weightChart');
+  if (!canvas) return;
+
   const ctx = canvas.getContext('2d');
   if (chart) chart.destroy();
 
@@ -1284,64 +1353,385 @@ function drawChart(data) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-
-      layout: {
-        padding: { top: 8, right: 10, bottom: 8, left: 10 }
-      },
-
+      layout: { padding: { top: 8, right: 10, bottom: 8, left: 10 } },
       plugins: {
         legend: {
           display: true,
           position: 'top',
-          labels: {
-            boxWidth: 14,
-            boxHeight: 10,
-            padding: 10,
-            font: { size: 12, weight: '600' }
-          }
+          labels: { boxWidth: 14, boxHeight: 10, padding: 10, font: { size: 12, weight: '600' } }
         },
-        tooltip: {
-          titleFont: { size: 12, weight: '700' },
-          bodyFont: { size: 12 }
-        }
+        tooltip: { titleFont: { size: 12, weight: '700' }, bodyFont: { size: 12 } }
       },
-
       scales: {
         x: {
-          grid: {
-            color: 'rgba(0,0,0,0.08)',
-            borderDash: [3, 3]
-          },
-          ticks: {
-            font: { size: 10 },
-            maxRotation: 45,
-            minRotation: 45
-          }
+          grid: { color: 'rgba(0,0,0,0.08)', borderDash: [3, 3] },
+          ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 }
         },
         y: {
-          grid: {
-            color: 'rgba(0,0,0,0.08)',
-            borderDash: [3, 3]
-          },
-          ticks: {
-            font: { size: 10 },
-            callback: (v) => Number(v).toFixed(1)
-          },
-          title: {
-            display: true,
-            text: 'Peso (kg)',
-            font: { size: 11, weight: '600' },
-            padding: { top: 0, bottom: 6 }
-          }
+          grid: { color: 'rgba(0,0,0,0.08)', borderDash: [3, 3] },
+          ticks: { font: { size: 10 }, callback: (v) => Number(v).toFixed(1) },
+          title: { display: true, text: 'Peso (kg)', font: { size: 11, weight: '600' }, padding: { top: 0, bottom: 6 } }
         }
       }
     }
   });
 }
 
+/* =========================================================
+   MENU ⋯ + EXPORTAR / IMPORTAR
+========================================================= */
+const moreBtn = qs('#more-btn');
+const moreMenu = qs('#more-menu');
+
+const openExportBtn = qs('#open-export');
+const openImportBtn = qs('#open-import');
+const closeMoreBtn = qs('#close-more');
+
+const modalExport = qs('#modal-export');
+const modalImport = qs('#modal-import');
+
+/* --- helpers export/import --- */
+function safeParseJSON(text) {
+  try { return JSON.parse(text); } catch { return null; }
+}
+function downloadJSON(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* --- abrir/fechar menu ⋯ --- */
+function showMoreMenu() {
+  if (!moreMenu) return;
+  moreMenu.classList.add('show');
+  moreMenu.setAttribute('aria-hidden', 'false');
+}
+function hideMoreMenu() {
+  if (!moreMenu) return;
+  moreMenu.classList.remove('show');
+  moreMenu.setAttribute('aria-hidden', 'true');
+}
+
+if (moreBtn) moreBtn.onclick = (e) => {
+  e.stopPropagation();
+  if (!moreMenu) return;
+  moreMenu.classList.contains('show') ? hideMoreMenu() : showMoreMenu();
+};
+
+if (closeMoreBtn) closeMoreBtn.onclick = () => hideMoreMenu();
+
+document.addEventListener('click', (e) => {
+  if (!moreMenu || !moreMenu.classList.contains('show')) return;
+  if (e.target === moreBtn) return;
+  if (moreMenu.contains(e.target)) return;
+  hideMoreMenu();
+});
+
+/* --- export modal --- */
+if (qs('#close-export-modal')) qs('#close-export-modal').onclick = () => closeModal(modalExport);
+if (modalExport) modalExport.addEventListener('click', e => { if (e.target === modalExport) closeModal(modalExport); });
+
+if (openExportBtn) openExportBtn.onclick = () => {
+  hideMoreMenu();
+  openModal(modalExport);
+};
+if (qs('#back-export')) qs('#back-export').onclick = () => {
+  closeModal(modalExport);
+  showMoreMenu();
+};
+
+function buildExportPayload(scope) {
+  const payload = {
+    app: 'App-Fitness',
+    exportedAt: new Date().toISOString(),
+    scope,
+    data: {}
+  };
+
+  if (scope === 'all' || scope === 'train') {
+    payload.data.train = {
+      days: loadDays(),
+      exercises: loadExercises()
+    };
+  }
+  if (scope === 'all' || scope === 'food') {
+    payload.data.food = {
+      mealtypes: loadMealTypes(),
+      meals: loadMeals()
+    };
+  }
+  if (scope === 'all' || scope === 'progress') {
+    payload.data.progress = {
+      records: loadProgress()
+    };
+  }
+
+  return payload;
+}
+
+function doExport(scope) {
+  const p = buildExportPayload(scope);
+  const date = new Date();
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  downloadJSON(p, `App-Fitness_${scope}_${y}-${m}-${d}.json`);
+}
+
+if (qs('#exp-all')) qs('#exp-all').onclick = () => doExport('all');
+if (qs('#exp-train')) qs('#exp-train').onclick = () => doExport('train');
+if (qs('#exp-food')) qs('#exp-food').onclick = () => doExport('food');
+if (qs('#exp-progress')) qs('#exp-progress').onclick = () => doExport('progress');
+
+/* --- import modal + steps --- */
+const impStep1 = qs('#import-step-1');
+const impStep2 = qs('#import-step-2');
+const impStep3 = qs('#import-step-3');
+
+const impFile = qs('#import-file');
+const goImportModeBtn = qs('#go-import-mode');
+const impReplaceBtn = qs('#imp-replace');
+const impAddBtn = qs('#imp-add');
+
+let impScope = 'all';
+let impJson = null;
+
+function showImportStep(n) {
+  if (!impStep1 || !impStep2 || !impStep3) return;
+  impStep1.style.display = (n === 1) ? 'block' : 'none';
+  impStep2.style.display = (n === 2) ? 'block' : 'none';
+  impStep3.style.display = (n === 3) ? 'block' : 'none';
+}
+
+function resetImportFlow() {
+  impScope = 'all';
+  impJson = null;
+  if (impFile) impFile.value = '';
+  if (goImportModeBtn) goImportModeBtn.disabled = true;
+  showImportStep(1);
+}
+
+if (qs('#close-import-modal')) qs('#close-import-modal').onclick = () => { resetImportFlow(); closeModal(modalImport); };
+if (modalImport) modalImport.addEventListener('click', e => { if (e.target === modalImport) { resetImportFlow(); closeModal(modalImport); } });
+
+if (openImportBtn) openImportBtn.onclick = () => {
+  hideMoreMenu();
+  resetImportFlow();
+  openModal(modalImport);
+};
+
+if (qs('#back-import-1')) qs('#back-import-1').onclick = () => {
+  resetImportFlow();
+  closeModal(modalImport);
+  showMoreMenu();
+};
+
+if (qs('#back-import-2')) qs('#back-import-2').onclick = () => showImportStep(1);
+if (qs('#back-import-3')) qs('#back-import-3').onclick = () => showImportStep(2);
+
+/* escolher scope no step 1 */
+qsa('[data-imp-scope]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    impScope = btn.dataset.impScope || 'all';
+    showImportStep(2);
+  });
+});
+
+/* escolher ficheiro no step 2 */
+if (impFile) {
+  impFile.addEventListener('change', async () => {
+    impJson = null;
+    if (goImportModeBtn) goImportModeBtn.disabled = true;
+
+    const f = impFile.files?.[0];
+    if (!f) return;
+
+    const text = await f.text();
+    const parsed = safeParseJSON(text);
+    if (!parsed || typeof parsed !== 'object' || !parsed.data) {
+      alert('Ficheiro inválido. Exporta primeiro na app para garantir o formato.');
+      return;
+    }
+
+    impJson = parsed;
+    if (goImportModeBtn) goImportModeBtn.disabled = false;
+  });
+}
+
+if (goImportModeBtn) goImportModeBtn.onclick = () => showImportStep(3);
+
+/* merge helpers (sem perder relações) */
+function remapId(oldId, map) {
+  if (!oldId) return oldId;
+  return map.get(oldId) || oldId;
+}
+
+function mergeArrayById(existing, incoming, { remap = null } = {}) {
+  const out = [...existing];
+  const seen = new Set(existing.map(x => x?.id).filter(Boolean));
+  const idMap = new Map();
+
+  for (const item of (incoming || [])) {
+    if (!item || typeof item !== 'object') continue;
+
+    let newItem = { ...item };
+
+    if (!newItem.id || seen.has(newItem.id)) {
+      const newId = uid();
+      if (newItem.id) idMap.set(newItem.id, newId);
+      newItem.id = newId;
+    }
+
+    if (remap) newItem = remap(newItem, idMap);
+
+    out.push(newItem);
+    seen.add(newItem.id);
+  }
+
+  return { merged: out, idMap };
+}
+
+function applyReplace(scope, data) {
+  if (scope === 'all' || scope === 'train') {
+    const t = data?.train;
+    if (t?.days && t?.exercises) {
+      saveDays(t.days);
+      saveExercises(t.exercises);
+    }
+  }
+  if (scope === 'all' || scope === 'food') {
+    const f = data?.food;
+    if (f?.mealtypes && f?.meals) {
+      saveMealTypes(f.mealtypes);
+      saveMeals(f.meals);
+    }
+  }
+  if (scope === 'all' || scope === 'progress') {
+    const p = data?.progress;
+    if (p?.records) {
+      saveProgress(p.records);
+    }
+  }
+}
+
+function applyAdd(scope, data) {
+  if (scope === 'all' || scope === 'train') {
+    const t = data?.train;
+    if (t?.days && t?.exercises) {
+      // merge days
+      const daysRes = mergeArrayById(loadDays(), t.days);
+      const dayIdMap = daysRes.idMap;
+
+      // merge exercises remap dayId if day got remapped
+      const exRes = mergeArrayById(loadExercises(), t.exercises, {
+        remap: (it, map) => ({
+          ...it,
+          dayId: remapId(it.dayId, dayIdMap)
+        })
+      });
+
+      saveDays(daysRes.merged);
+      saveExercises(exRes.merged);
+    }
+  }
+
+  if (scope === 'all' || scope === 'food') {
+    const f = data?.food;
+    if (f?.mealtypes && f?.meals) {
+      // merge mealtypes
+      const typesRes = mergeArrayById(loadMealTypes(), f.mealtypes);
+      const typeIdMap = typesRes.idMap;
+
+      // merge meals remap mealTypeId
+      const mealsRes = mergeArrayById(loadMeals(), f.meals, {
+        remap: (it, map) => ({
+          ...it,
+          mealTypeId: remapId(it.mealTypeId, typeIdMap)
+        })
+      });
+
+      saveMealTypes(typesRes.merged);
+      saveMeals(mealsRes.merged);
+    }
+  }
+
+  if (scope === 'all' || scope === 'progress') {
+    const p = data?.progress;
+    if (p?.records) {
+      const res = mergeArrayById(loadProgress(), p.records);
+      saveProgress(res.merged);
+    }
+  }
+}
+
+function afterImportRefresh() {
+  renderDays();
+  renderMealTypes();
+  renderProgress();
+
+  // refrescos contextuais
+  if (qs('#screenDay')?.classList.contains('active')) renderExercises();
+  if (qs('#screenMealType')?.classList.contains('active')) renderMeals();
+  if (qs('#screenExercise')?.classList.contains('active')) {
+    const ex = getCurrentExercise();
+    if (ex) renderExerciseMedia();
+  }
+  if (qs('#screenMeal')?.classList.contains('active')) {
+    const m = getCurrentMeal();
+    if (m) renderMealMedia();
+  }
+}
+
+/* executar import (replace/add) */
+function doImport(mode) {
+  if (!impJson?.data) {
+    alert('Nenhum ficheiro carregado.');
+    return;
+  }
+
+  // validação mínima do scope pedido vs ficheiro
+  const data = impJson.data;
+
+  // se scope escolhido não existir no ficheiro, alerta
+  const hasTrain = !!data.train;
+  const hasFood = !!data.food;
+  const hasProg = !!data.progress;
+
+  if (impScope === 'train' && !hasTrain) return alert('Este ficheiro não tem dados de treino.');
+  if (impScope === 'food' && !hasFood) return alert('Este ficheiro não tem dados de alimentação.');
+  if (impScope === 'progress' && !hasProg) return alert('Este ficheiro não tem dados de progresso.');
+  if (impScope === 'all' && !(hasTrain || hasFood || hasProg)) return alert('Este ficheiro não tem dados reconhecidos.');
+
+  if (mode === 'replace') {
+    applyReplace(impScope, data);
+  } else {
+    applyAdd(impScope, data);
+  }
+
+  afterImportRefresh();
+  alert('Importação concluída ✅');
+
+  resetImportFlow();
+  closeModal(modalImport);
+}
+
+if (impReplaceBtn) impReplaceBtn.onclick = () => {
+  const ok = confirm('Substituir vai apagar os dados existentes nessa secção. Queres continuar?');
+  if (!ok) return;
+  doImport('replace');
+};
+
+if (impAddBtn) impAddBtn.onclick = () => doImport('add');
+
 /* ===================== INIT ===================== */
 window.onload = () => {
   renderDays();
   renderProgress();
-  renderMealTypes(); // plano alimentar
+  renderMealTypes();
 };
