@@ -1,3 +1,5 @@
+alert("JS carregou ✅");
+
 /* =========================================================
    App-Fitness — script.js (PARTE 1/4)
    - Helpers + Navegação
@@ -2102,4 +2104,5 @@ window.onload = () => {
   renderProgress();
   renderMealTypes();
 };
+
 
