@@ -118,7 +118,7 @@ button:active{ transform:scale(0.97); }
   padding:0;
 }
 
-/* ===== NOVO: botões prev/next no lightbox ===== */
+/* ===== botões prev/next no lightbox ===== */
 .lightbox-nav{
   position: absolute;
   top: 50%;
@@ -470,7 +470,7 @@ button:active{ transform:scale(0.97); }
   margin-bottom:10px;
 }
 
-/* ===================== DETALHE EXERCÍCIO ===================== */
+/* ===================== DETALHE EXERCÍCIO / REFEIÇÃO ===================== */
 #ex-notes,
 #meal-notes{
   width:100%;
@@ -661,4 +661,88 @@ button:active{ transform:scale(0.97); }
 /* Progresso: não meter margin-bottom nos inputs da linha data/peso */
 #modal-progress .progress-form-row input{
   margin-bottom: 0;
+}
+
+/* =========================================================
+   NOVO: MENU ⋯ + EXPORTAR/IMPORTAR
+========================================================= */
+
+/* Topbar do Home */
+.home-topbar{
+  width:100%;
+  max-width:420px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+/* Botão ⋯ */
+.more-btn{
+  width: 38px !important;
+  height: 38px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 12px;
+  background: #111827;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Menu flutuante */
+.more-menu{
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 180px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 14px 30px rgba(0,0,0,0.18);
+  border-radius: 14px;
+  padding: 8px;
+  display: none;
+  z-index: 350;
+}
+.more-menu.show{ display: block; }
+
+.more-item{
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 12px 12px !important;
+  border-radius: 12px;
+  background: transparent;
+  color:#111827;
+  font-size: 14px;
+  font-weight: 800;
+  text-align:left;
+}
+.more-item:active{ transform: none; }
+.more-item:hover{ background: rgba(17,24,39,0.06); }
+
+/* Lista dentro dos modais export/import */
+.menu-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top: 10px;
+}
+
+/* Botão “voltar” dentro do modal */
+.back-inline{
+  width: auto !important;
+  max-width: none !important;
+  margin: 12px 0 0 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 800;
+  border: none !important;
+  border-radius: 0;
 }
