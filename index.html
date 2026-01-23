@@ -16,7 +16,7 @@
   <!-- HOME -->
   <div id="home" class="screen active">
 
-    <!-- TOP BAR (NOVO) -->
+    <!-- TOP BAR -->
     <div class="home-topbar">
       <div></div>
       <button id="more-btn" class="more-btn" aria-label="Mais opções">⋯</button>
@@ -282,14 +282,15 @@
     </div>
   </div>
 
-  <!-- ================== MENU ⋯ (NOVO) ================== -->
+  <!-- ================== MENU ⋯ ================== -->
   <div id="more-menu" class="more-menu" aria-hidden="true">
     <button type="button" class="more-item" id="open-export">Exportar</button>
     <button type="button" class="more-item" id="open-import">Importar</button>
+    <button type="button" class="more-item" id="open-clean">Limpeza</button>
     <button type="button" class="more-item" id="close-more">Fechar</button>
   </div>
 
-  <!-- ================== MODAL: EXPORTAR (NOVO) ================== -->
+  <!-- ================== MODAL: EXPORTAR ================== -->
   <div id="modal-export" class="modal">
     <div class="modal-card">
       <div class="modal-head">
@@ -310,7 +311,7 @@
     </div>
   </div>
 
-  <!-- ================== MODAL: IMPORTAR (NOVO) ================== -->
+  <!-- ================== MODAL: IMPORTAR ================== -->
   <div id="modal-import" class="modal">
     <div class="modal-card">
       <div class="modal-head">
@@ -355,6 +356,28 @@
 
         <button type="button" class="back-inline" id="back-import-3">← Voltar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ================== MODAL: LIMPEZA (NOVO) ================== -->
+  <div id="modal-clean" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>Limpeza</h2>
+        <button type="button" class="modal-close" id="close-clean-modal">×</button>
+      </div>
+
+      <p class="modal-sub">
+        Remove fotos/vídeos guardados que já não estão a ser usados em nenhum treino/refeição.
+      </p>
+
+      <div id="clean-info" class="card" style="margin-top:0;"></div>
+
+      <div class="menu-list">
+        <button type="button" class="btn-danger full-width" id="do-clean">Limpar não usados</button>
+      </div>
+
+      <button type="button" class="back-inline" id="back-clean">← Voltar</button>
     </div>
   </div>
 
