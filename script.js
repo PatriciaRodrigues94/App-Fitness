@@ -1,3 +1,21 @@
+// ===== ERUDA (debug) — ativa só com ?debug=1 =====
+(() => {
+  try {
+    const params = new URLSearchParams(location.search);
+    if (!params.has('debug')) return;
+
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/eruda';
+    s.onload = () => {
+      eruda.init();
+      console.log('✅ Eruda ativo');
+    };
+    document.head.appendChild(s);
+  } catch (e) {
+    console.log('Eruda falhou:', e);
+  }
+})();
+
 /* =========================================================
    App-Fitness — script.js (FINAL / 1 ficheiro)
    ✅ FIX MEMÓRIA: fotos/vídeos em IndexedDB (Blob)
@@ -2304,3 +2322,4 @@ window.addEventListener('pageshow', () => { initApp(); });
 window.addEventListener('beforeunload', () => {
   try { revokeAllMediaObjectURLs(); } catch {}
 });
+
