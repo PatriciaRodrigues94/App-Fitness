@@ -1,10 +1,10 @@
 /* =========================================================
    App-Fitness — script.js (ALL-IN-ONE)
    - Mantém as funcionalidades antigas (Treino/Alimentação/Progresso)
-   - NOVO: MediaStore para poupar espaço (refs em vez de duplicar src)
+   - MediaStore para poupar espaço (refs em vez de duplicar src)
    - Export/Import com/sem media
    - Limpeza de media não usado
-   - Migração automática do formato antigo (inline src) para MediaStore
+   - MIGRAÇÃO/IMPORT: suporta ficheiros antigos com media inline (src)
    - Init robusto (mobile/PWA)
 ========================================================= */
 
@@ -74,9 +74,7 @@ function loadProgress() {
 const saveProgress = d => localStorage.setItem(PROGRESS_KEY, JSON.stringify(d));
 
 /* =========================================================
-   MEDIA STORE (NOVO)
-   - guarda as fotos/vídeos 1x só (poupa espaço)
-   - exercícios/refeições guardam refs: {id, type, ref, notes}
+   MEDIA STORE
 ========================================================= */
 const MEDIA_KEY = 'ft_media_store';
 
@@ -367,7 +365,7 @@ function renderExercises() {
     const thumb = document.createElement('div');
     thumb.className = 'thumb';
 
-    // ✅ NOVO: thumb vem do MediaStore via ref
+    // thumb vem do MediaStore via ref
     const firstRef = (ex.media || [])[0]?.ref;
     const stored = firstRef ? mediaStoreGet(firstRef) : null;
 
@@ -489,7 +487,7 @@ if (qs('#save-ex')) {
         name,
         notes: quick,
         done: false,
-        media: [], // ✅ refs: [{id, type, ref, notes}]
+        media: [], // refs: [{id, type, ref, notes}]
         createdAt: Date.now()
       });
     }
@@ -826,7 +824,7 @@ function renderMeals() {
     const thumb = document.createElement('div');
     thumb.className = 'thumb';
 
-    // ✅ NOVO: thumb vem do MediaStore via ref
+    // thumb vem do MediaStore via ref
     const firstRef = (m.media || [])[0]?.ref;
     const stored = firstRef ? mediaStoreGet(firstRef) : null;
 
@@ -885,7 +883,7 @@ function renderMeals() {
       saveMeals(loadMeals().filter(x => x.id !== m.id));
       renderMeals();
       renderMealTypes();
-      // NOTA: não apagamos media do MediaStore aqui (pode estar noutro sítio)
+      // não apagamos media do MediaStore aqui
     };
 
     actions.append(editBtn, delBtn);
@@ -940,7 +938,7 @@ if (qs('#save-meal')) {
         mealTypeId: currentMealTypeId,
         title,
         notes: '',
-        media: [], // ✅ refs: [{id, type, ref, notes}]
+        media: [], // refs: [{id, type, ref, notes}]
         createdAt: Date.now()
       });
     }
@@ -1701,6 +1699,72 @@ function mergeArrayById(existing, incoming, { remap = null } = {}) {
   return { merged: out, idMap };
 }
 
+/* =========================================================
+   ✅ CORREÇÃO IMPORT (FICHEIROS ANTIGOS COM src INLINE)
+   - Se o JSON antigo não trouxer data.media.store,
+     mas trouxer media: [{src: "..."}], converte para MediaStore+ref.
+========================================================= */
+function convertInlineSrcMediaToRefs_INCOMING(data) {
+  if (!data || typeof data !== 'object') return;
+
+  // se já vier com store e refs, não mexemos aqui.
+  // (mesmo assim, vamos só converter casos residuais com src.)
+  const store = loadMediaStore();
+  if (!store.items || typeof store.items !== 'object') store.items = {};
+
+  let changedStore = false;
+
+  function addToStore(type, src) {
+    const id = uid();
+    store.items[id] = { id, type: type || 'image/jpeg', src, createdAt: Date.now() };
+    changedStore = true;
+    return id;
+  }
+
+  function convertArray(arr) {
+    if (!Array.isArray(arr)) return;
+
+    for (const item of arr) {
+      if (!item || typeof item !== 'object') continue;
+
+      // se já tem ref, ok
+      if (item.ref) continue;
+
+      // se tem src inline, converte
+      if (typeof item.src === 'string' && item.src.startsWith('data:')) {
+        const type = item.type || (item.src.startsWith('data:video') ? 'video/mp4' : 'image/jpeg');
+        const mediaId = addToStore(type, item.src);
+
+        item.ref = mediaId;
+        item.type = type;
+
+        // remove src para ficar no formato novo
+        delete item.src;
+      }
+    }
+  }
+
+  const exs = data?.train?.exercises;
+  if (Array.isArray(exs)) {
+    exs.forEach(ex => {
+      if (!ex || typeof ex !== 'object') return;
+      if (!Array.isArray(ex.media)) return;
+      convertArray(ex.media);
+    });
+  }
+
+  const meals = data?.food?.meals;
+  if (Array.isArray(meals)) {
+    meals.forEach(meal => {
+      if (!meal || typeof meal !== 'object') return;
+      if (!Array.isArray(meal.media)) return;
+      convertArray(meal.media);
+    });
+  }
+
+  if (changedStore) saveMediaStore(store);
+}
+
 /* ===== MediaStore import helpers ===== */
 function mergeMediaStoreReplace(incomingStore) {
   if (!incomingStore || typeof incomingStore !== 'object') return;
@@ -1756,9 +1820,20 @@ function remapMediaRefsInTrainAndFood(data, mediaIdMap) {
   }));
 }
 
+/* =========================================================
+   ✅ AQUI ESTÁ A CORREÇÃO PRINCIPAL NO IMPORT:
+   - Antes de aplicar replace/add:
+     1) se o ficheiro traz store → importa store
+     2) se o ficheiro NÃO traz store mas traz media com src inline → converte
+========================================================= */
+
 function applyReplace(scope, data) {
-  // media (se existir no ficheiro)
+  // 1) se existir store no ficheiro, substitui MediaStore
   if (data?.media?.store) mergeMediaStoreReplace(data.media.store);
+
+  // 2) converter quaisquer src inline que venham no JSON (antigo) para refs
+  //    (Isto garante compatibilidade mesmo sem data.media.store)
+  convertInlineSrcMediaToRefs_INCOMING(data);
 
   if (scope === 'all' || scope === 'train') {
     const t = data?.train;
@@ -1781,12 +1856,15 @@ function applyReplace(scope, data) {
 }
 
 function applyAdd(scope, data) {
-  // media (se existir no ficheiro)
+  // 1) se existir store no ficheiro, junta e remapeia colisões de ids do store
   let mediaIdMap = null;
   if (data?.media?.store) {
     mediaIdMap = mergeMediaStoreAdd(data.media.store) || null;
     remapMediaRefsInTrainAndFood(data, mediaIdMap);
   }
+
+  // 2) converter quaisquer src inline (antigo) para refs (mesmo que não haja store no ficheiro)
+  convertInlineSrcMediaToRefs_INCOMING(data);
 
   if (scope === 'all' || scope === 'train') {
     const t = data?.train;
