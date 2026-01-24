@@ -1,16 +1,14 @@
 /* =========================================================
-   App-Fitness — script.js (ALL-IN-ONE)
-   - Mantém as funcionalidades antigas (Treino/Alimentação/Progresso)
-   - MediaStore para poupar espaço (refs em vez de duplicar src)
-   - Export/Import com/sem media
-   - Limpeza de media não usado
-   - MIGRAÇÃO/IMPORT: suporta ficheiros antigos com media inline (src)
-   - Init robusto (mobile/PWA)
+   App-Fitness — script.js (FINAL / 1 ficheiro)
+   ✅ FIX MEMÓRIA: fotos/vídeos em IndexedDB (Blob)
+   ✅ UI/HTML/CSS iguais, funcionalidades mantidas
+   ✅ Export/Import com e sem media + compatível com JSON antigo (src inline)
+   ✅ Limpeza de media não usado + Migração 1x do formato antigo
 ========================================================= */
 
-const qs = s => document.querySelector(s);
-const qsa = s => document.querySelectorAll(s);
-
+/* ===================== HELPERS ===================== */
+const qs  = (s) => document.querySelector(s);
+const qsa = (s) => document.querySelectorAll(s);
 const uid = () => (crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`);
 
 /* ===================== NAVEGAÇÃO ===================== */
@@ -20,11 +18,9 @@ function openScreen(id) {
   if (el) el.classList.add('active');
 }
 
-/* cards/botões com data-screen */
-qsa('[data-screen]').forEach(btn => {
-  btn.addEventListener('click', () => openScreen(btn.dataset.screen));
-});
+// elementos com data-screen (home cards + botões voltar)
 qsa('[data-screen]').forEach(el => {
+  el.addEventListener('click', () => openScreen(el.dataset.screen));
   el.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -38,20 +34,20 @@ const DAYS_KEY = 'ft_days';
 const EX_KEY   = 'ft_exercises';
 
 const loadDays = () => JSON.parse(localStorage.getItem(DAYS_KEY) || '[]');
-const saveDays = d => localStorage.setItem(DAYS_KEY, JSON.stringify(d));
+const saveDays = (d) => localStorage.setItem(DAYS_KEY, JSON.stringify(d));
 
 const loadExercises = () => JSON.parse(localStorage.getItem(EX_KEY) || '[]');
-const saveExercises = d => localStorage.setItem(EX_KEY, JSON.stringify(d));
+const saveExercises = (d) => localStorage.setItem(EX_KEY, JSON.stringify(d));
 
 /* ===================== STORAGE (ALIMENTAÇÃO) ===================== */
 const MEALTYPES_KEY = 'ft_mealtypes';
 const MEALS_KEY     = 'ft_meals';
 
 const loadMealTypes = () => JSON.parse(localStorage.getItem(MEALTYPES_KEY) || '[]');
-const saveMealTypes = d => localStorage.setItem(MEALTYPES_KEY, JSON.stringify(d));
+const saveMealTypes = (d) => localStorage.setItem(MEALTYPES_KEY, JSON.stringify(d));
 
 const loadMeals = () => JSON.parse(localStorage.getItem(MEALS_KEY) || '[]');
-const saveMeals = d => localStorage.setItem(MEALS_KEY, JSON.stringify(d));
+const saveMeals = (d) => localStorage.setItem(MEALS_KEY, JSON.stringify(d));
 
 /* ===================== STORAGE (PROGRESSO) ===================== */
 const PROGRESS_KEY = 'progress';
@@ -59,80 +55,187 @@ const PROGRESS_KEY = 'progress';
 function loadProgress() {
   const data = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '[]');
 
-  // garantir ids
+  // garantir ids (para editar/apagar)
   let changed = false;
   for (const r of data) {
-    if (!r.id) {
-      r.id = uid();
-      changed = true;
-    }
+    if (!r.id) { r.id = uid(); changed = true; }
   }
   if (changed) localStorage.setItem(PROGRESS_KEY, JSON.stringify(data));
 
   return data;
 }
-const saveProgress = d => localStorage.setItem(PROGRESS_KEY, JSON.stringify(d));
+const saveProgress = (d) => localStorage.setItem(PROGRESS_KEY, JSON.stringify(d));
 
 /* =========================================================
-   MEDIA STORE
+   ✅ MEDIA STORE (INDEXEDDB) — guarda Blob/File
+   - Exercícios/refeições guardam apenas refs:
+     media: [{ id, type, ref, notes }]
 ========================================================= */
-const MEDIA_KEY = 'ft_media_store';
+const IDB_NAME    = 'AppFitnessMediaDB';
+const IDB_VERSION = 1;
+const IDB_STORE   = 'media'; // keyPath: id
 
-/*
- store format:
- {
-   version: 1,
-   items: {
-      "<mediaId>": { id, type, src, createdAt }
-   }
- }
-*/
+let __dbPromise = null;
 
-function loadMediaStore() {
-  const raw = localStorage.getItem(MEDIA_KEY);
-  if (!raw) return { version: 1, items: {} };
+function openMediaDB() {
+  if (__dbPromise) return __dbPromise;
 
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return { version: 1, items: {} };
-    if (!parsed.items || typeof parsed.items !== 'object') parsed.items = {};
-    if (!parsed.version) parsed.version = 1;
-    return parsed;
-  } catch {
-    return { version: 1, items: {} };
-  }
+  __dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE, { keyPath: 'id' });
+      }
+    };
+
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('Erro ao abrir IndexedDB'));
+  });
+
+  return __dbPromise;
 }
 
-function saveMediaStore(store) {
-  localStorage.setItem(MEDIA_KEY, JSON.stringify(store));
+async function idbPut(record) {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(record);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error || new Error('Erro no put()'));
+  });
 }
 
-/* cria e guarda media no store, devolve o mediaId */
-function mediaStoreAdd({ type, src }) {
-  const store = loadMediaStore();
+async function idbGet(id) {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error || new Error('Erro no get()'));
+  });
+}
+
+async function idbDelete(id) {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(id);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error || new Error('Erro no delete()'));
+  });
+}
+
+async function idbGetAllKeys() {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).getAllKeys();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error || new Error('Erro no getAllKeys()'));
+  });
+}
+
+async function idbGetAll() {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error || new Error('Erro no getAll()'));
+  });
+}
+
+/* -------- API MediaStore (para o resto do código) -------- */
+async function mediaEnsureDB() {
+  await openMediaDB();
+}
+
+async function mediaAddBlob({ type, blob }) {
   const id = uid();
-  store.items[id] = { id, type, src, createdAt: Date.now() };
-  saveMediaStore(store);
+  const record = {
+    id,
+    type: type || blob?.type || 'application/octet-stream',
+    blob,
+    createdAt: Date.now()
+  };
+  await idbPut(record);
   return id;
 }
 
-/* devolve objeto guardado */
-function mediaStoreGet(mediaId) {
-  const store = loadMediaStore();
-  return store.items?.[mediaId] || null;
+async function mediaPutBlobWithId({ id, type, blob, createdAt }) {
+  if (!id) throw new Error('mediaPutBlobWithId: id em falta');
+  const record = {
+    id,
+    type: type || blob?.type || 'application/octet-stream',
+    blob,
+    createdAt: createdAt || Date.now()
+  };
+  await idbPut(record);
+  return id;
 }
 
-/* remove do store (USAR só na limpeza, nunca no "apagar da refeição/exercício") */
-function mediaStoreDelete(mediaId) {
-  const store = loadMediaStore();
-  if (store.items?.[mediaId]) {
-    delete store.items[mediaId];
-    saveMediaStore(store);
+async function mediaGetRecord(id) {
+  return await idbGet(id); // {id,type,blob,createdAt} | null
+}
+
+async function mediaDelete(id) {
+  await idbDelete(id);
+}
+
+async function mediaListIds() {
+  return await idbGetAllKeys();
+}
+
+async function mediaListAllMeta() {
+  const all = await idbGetAll();
+  return all.map(r => ({
+    id: r.id,
+    type: r.type || r?.blob?.type || 'application/octet-stream',
+    size: r?.blob?.size || 0,
+    createdAt: r.createdAt || 0
+  }));
+}
+
+async function mediaClearAll() {
+  const ids = await mediaListIds();
+  for (const id of ids) await mediaDelete(id);
+}
+
+/* ===================== objectURL cache (evitar leaks) ===================== */
+const __objectUrlCache = new Map(); // mediaId -> objectURL
+
+async function getMediaObjectURL(mediaId) {
+  if (!mediaId) return null;
+  if (__objectUrlCache.has(mediaId)) return __objectUrlCache.get(mediaId);
+
+  const rec = await mediaGetRecord(mediaId);
+  if (!rec?.blob) return null;
+
+  const url = URL.createObjectURL(rec.blob);
+  __objectUrlCache.set(mediaId, url);
+  return url;
+}
+
+function revokeMediaObjectURL(mediaId) {
+  if (!mediaId) return;
+  const url = __objectUrlCache.get(mediaId);
+  if (url) {
+    try { URL.revokeObjectURL(url); } catch {}
+    __objectUrlCache.delete(mediaId);
   }
 }
 
-/* ===================== COMPRESSÃO (IMAGENS) ===================== */
-function compressImageToDataURL(file, { maxSize = 1280, quality = 0.72 } = {}) {
+function revokeAllMediaObjectURLs() {
+  for (const url of __objectUrlCache.values()) {
+    try { URL.revokeObjectURL(url); } catch {}
+  }
+  __objectUrlCache.clear();
+}
+
+/* ===================== COMPRESSÃO (IMAGENS) -> Blob ===================== */
+function compressImageToBlob(file, { maxSize = 1280, quality = 0.72 } = {}) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -159,8 +262,10 @@ function compressImageToDataURL(file, { maxSize = 1280, quality = 0.72 } = {}) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
 
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(dataUrl);
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('Falha ao comprimir imagem.'));
+          resolve(blob);
+        }, 'image/jpeg', quality);
       };
 
       img.src = reader.result;
@@ -170,37 +275,80 @@ function compressImageToDataURL(file, { maxSize = 1280, quality = 0.72 } = {}) {
   });
 }
 
-/* ===================== MODAIS (BASE) ===================== */
+/* ===================== JSON helpers ===================== */
+function safeParseJSON(text) {
+  try { return JSON.parse(text); } catch { return null; }
+}
+
+function downloadJSON(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ===================== dataURL <-> Blob ===================== */
+function blobToDataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(new Error('Falha ao ler blob'));
+    r.onload = () => resolve(r.result);
+    r.readAsDataURL(blob);
+  });
+}
+
+function dataURLToBlob(dataUrl) {
+  try {
+    const str = String(dataUrl || '');
+    const comma = str.indexOf(',');
+    if (comma === -1) return null;
+
+    const meta = str.slice(0, comma);
+    const b64  = str.slice(comma + 1);
+
+    const mime = (meta.match(/data:(.*?);base64/) || [])[1] || 'application/octet-stream';
+    const bin = atob(b64);
+    const len = bin.length;
+    const arr = new Uint8Array(len);
+
+    for (let i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  } catch {
+    return null;
+  }
+}
+
+/* =========================================================
+   MODAIS (BASE)
+========================================================= */
 const modalDay = qs('#modal-day');
-const modalEx = qs('#modal-ex');
+const modalEx  = qs('#modal-ex');
 const modalProgress = qs('#modal-progress');
 
 function openModal(el) { if (el) el.style.display = 'flex'; }
-function closeModal(el) { if (el) el.style.display = 'none'; }
+function closeModal(el){ if (el) el.style.display = 'none'; }
 
 if (qs('#close-day-modal')) qs('#close-day-modal').onclick = () => closeModal(modalDay);
-if (qs('#close-ex-modal')) qs('#close-ex-modal').onclick = () => closeModal(modalEx);
-
-if (qs('#close-progress-modal')) qs('#close-progress-modal').onclick = () => {
-  try { editingId = null; } catch {}
-  closeModal(modalProgress);
-};
+if (qs('#close-ex-modal'))  qs('#close-ex-modal').onclick  = () => closeModal(modalEx);
+if (qs('#close-progress-modal')) qs('#close-progress-modal').onclick = () => closeModal(modalProgress);
 
 if (modalDay) modalDay.addEventListener('click', e => { if (e.target === modalDay) closeModal(modalDay); });
-if (modalEx) modalEx.addEventListener('click', e => { if (e.target === modalEx) closeModal(modalEx); });
-if (modalProgress) modalProgress.addEventListener('click', e => {
-  if (e.target === modalProgress) {
-    try { editingId = null; } catch {}
-    closeModal(modalProgress);
-  }
-});
+if (modalEx)  modalEx.addEventListener('click',  e => { if (e.target === modalEx)  closeModal(modalEx); });
+if (modalProgress) modalProgress.addEventListener('click', e => { if (e.target === modalProgress) closeModal(modalProgress); });
 
-/* ===================== TREINO: ESTADO ===================== */
+/* =========================================================
+   TREINO — estado
+========================================================= */
 let currentDayId = null;
-let currentExId = null;
+let currentExId  = null;
 
 let editingDayId = null;
-let editingExId = null;
+let editingExId  = null;
 
 /* ===================== TREINO: DIAS ===================== */
 const daysList = qs('#days-list');
@@ -209,7 +357,7 @@ function renderDays() {
   if (!daysList) return;
 
   const days = loadDays();
-  const exs = loadExercises();
+  const exs  = loadExercises();
 
   daysList.innerHTML = '';
 
@@ -364,24 +512,34 @@ function renderExercises() {
 
     const thumb = document.createElement('div');
     thumb.className = 'thumb';
+    thumb.textContent = '🏋️';
 
-    // thumb vem do MediaStore via ref
+    // thumb via IndexedDB (primeiro media ref)
     const firstRef = (ex.media || [])[0]?.ref;
-    const stored = firstRef ? mediaStoreGet(firstRef) : null;
+    if (firstRef) {
+      (async () => {
+        const rec = await mediaGetRecord(firstRef);
+        if (!rec?.blob) return;
 
-    if (stored) {
-      if (stored.type.startsWith('image')) {
-        const img = document.createElement('img');
-        img.src = stored.src;
-        thumb.appendChild(img);
-      } else {
-        const vid = document.createElement('video');
-        vid.src = stored.src;
-        vid.muted = true;
-        thumb.appendChild(vid);
-      }
-    } else {
-      thumb.textContent = '🏋️';
+        const url = await getMediaObjectURL(firstRef);
+        if (!url) return;
+
+        // ainda existe no DOM?
+        if (!thumb.isConnected) return;
+
+        thumb.textContent = '';
+        if ((rec.type || '').startsWith('image')) {
+          const img = document.createElement('img');
+          img.src = url;
+          thumb.appendChild(img);
+        } else {
+          const vid = document.createElement('video');
+          vid.src = url;
+          vid.muted = true;
+          vid.playsInline = true;
+          thumb.appendChild(vid);
+        }
+      })().catch(() => {});
     }
 
     const titleBox = document.createElement('div');
@@ -395,7 +553,6 @@ function renderExercises() {
     sub.textContent = ex.notes || '';
 
     titleBox.append(title, sub);
-
     left.append(check, thumb, titleBox);
 
     const actions = document.createElement('div');
@@ -487,7 +644,7 @@ if (qs('#save-ex')) {
         name,
         notes: quick,
         done: false,
-        media: [], // refs: [{id, type, ref, notes}]
+        media: [], // refs: [{id,type,ref,notes}]
         createdAt: Date.now()
       });
     }
@@ -502,8 +659,8 @@ if (qs('#save-ex')) {
 /* ===================== TREINO: DETALHE DO EXERCÍCIO ===================== */
 const exTitle = qs('#ex-title');
 const exNotes = qs('#ex-notes');
-const exDone = qs('#ex-done');
-const exMediaGrid = qs('#ex-media-grid');
+const exDone  = qs('#ex-done');
+const exMediaGrid  = qs('#ex-media-grid');
 const exMediaInput = qs('#ex-media-input');
 
 function getCurrentExercise() {
@@ -525,7 +682,7 @@ function openExerciseDetail() {
 
   if (exTitle) exTitle.textContent = ex.name || 'Exercício';
   if (exNotes) exNotes.value = ex.notesLong || '';
-  if (exDone) exDone.checked = !!ex.done;
+  if (exDone)  exDone.checked = !!ex.done;
 
   renderExerciseMedia();
   openScreen('screenExercise');
@@ -583,35 +740,32 @@ if (exDone) {
   });
 }
 
-/* ========= Upload media (MediaStore + refs) ========= */
+/* ========= Upload media (IndexedDB + refs) ========= */
 if (exMediaInput) {
   exMediaInput.onchange = async () => {
     const ex = getCurrentExercise();
     if (!ex) return;
 
-    const mediaRefs = ex.media || [];
+    const mediaRefs = Array.isArray(ex.media) ? [...ex.media] : [];
 
-    for (const file of exMediaInput.files) {
+    for (const file of (exMediaInput.files || [])) {
       if (file.type.startsWith('image')) {
         try {
-          const src = await compressImageToDataURL(file, { maxSize: 1280, quality: 0.72 });
-          const mediaId = mediaStoreAdd({ type: 'image/jpeg', src });
-          mediaRefs.push({ id: uid(), type: 'image/jpeg', ref: mediaId, notes: '' });
+          const blob = await compressImageToBlob(file, { maxSize: 1280, quality: 0.72 });
+          const ref  = await mediaAddBlob({ type: 'image/jpeg', blob });
+          mediaRefs.push({ id: uid(), type: 'image/jpeg', ref, notes: '' });
         } catch (e) {
           console.error(e);
           alert('Não foi possível processar esta imagem.');
         }
       } else if (file.type.startsWith('video')) {
-        const reader = new FileReader();
-        await new Promise(resolve => {
-          reader.onload = e => {
-            const src = e.target.result;
-            const mediaId = mediaStoreAdd({ type: file.type, src });
-            mediaRefs.push({ id: uid(), type: file.type, ref: mediaId, notes: '' });
-            resolve();
-          };
-          reader.readAsDataURL(file);
-        });
+        try {
+          const ref = await mediaAddBlob({ type: file.type, blob: file });
+          mediaRefs.push({ id: uid(), type: file.type, ref, notes: '' });
+        } catch (e) {
+          console.error(e);
+          alert('Não foi possível guardar este vídeo.');
+        }
       }
     }
 
@@ -628,43 +782,234 @@ function renderExerciseMedia() {
   if (!ex || !exMediaGrid) return;
 
   exMediaGrid.innerHTML = '';
-  const mediaArr = ex.media || [];
+  const mediaArr = Array.isArray(ex.media) ? ex.media : [];
 
   mediaArr.forEach(m => {
-    const stored = m?.ref ? mediaStoreGet(m.ref) : null;
-    if (!stored) return;
-
     const wrap = document.createElement('div');
     wrap.className = 'media-item';
 
-    const el = document.createElement(stored.type.startsWith('image') ? 'img' : 'video');
-    el.src = stored.src;
-    if (!stored.type.startsWith('image')) el.muted = true;
+    const placeholder = document.createElement('div');
+    placeholder.style.fontSize = '22px';
+    placeholder.style.display = 'grid';
+    placeholder.style.placeItems = 'center';
+    placeholder.textContent = '⏳';
+    wrap.appendChild(placeholder);
 
-    el.onclick = () => openMediaLightbox(ex.name || 'Media', m.id);
+    (async () => {
+      const rec = m?.ref ? await mediaGetRecord(m.ref) : null;
+      if (!rec?.blob) return;
 
-    const del = document.createElement('button');
-    del.textContent = '×';
-    del.onclick = (ev) => {
-      ev.stopPropagation();
+      const url = await getMediaObjectURL(m.ref);
+      if (!url) return;
 
-      // remove só a referência deste exercício
-      const updated = mediaArr.filter(x => x.id !== m.id);
-      saveCurrentExercise({ media: updated });
+      if (!wrap.isConnected) return;
 
-      // NÃO apagar do MediaStore aqui
-      renderExerciseMedia();
-      renderExercises();
-      renderDays();
-    };
+      if (wrap.contains(placeholder)) wrap.removeChild(placeholder);
 
-    wrap.append(el, del);
+      const el = document.createElement((rec.type || '').startsWith('image') ? 'img' : 'video');
+      el.src = url;
+
+      if (!(rec.type || '').startsWith('image')) {
+        el.muted = true;
+        el.playsInline = true;
+      }
+
+      el.onclick = () => openMediaLightbox(ex.name || 'Media', m.id);
+
+      const del = document.createElement('button');
+      del.textContent = '×';
+      del.onclick = (ev) => {
+        ev.stopPropagation();
+
+        const exNow = getCurrentExercise();
+        if (!exNow) return;
+
+        const updated = (exNow.media || []).filter(x => x.id !== m.id);
+        saveCurrentExercise({ media: updated });
+
+        // NÃO apagar do IndexedDB aqui (só na limpeza)
+        renderExerciseMedia();
+        renderExercises();
+        renderDays();
+      };
+
+      wrap.append(el, del);
+    })().catch(() => {});
+
     exMediaGrid.appendChild(wrap);
   });
 }
 
 /* =========================================================
-   PLANO ALIMENTAR — estado/modais
+   LIGHTBOX (galeria) — treino + alimentação
+========================================================= */
+const lb = {
+  open: false,
+  title: '',
+  items: [],     // [{id, type, src(objectURL), notes}]
+  index: 0,
+  saveNotes: null
+};
+
+function lbShow() {
+  const box = qs('#lightbox');
+  const img = qs('#lightbox-img');
+  const vid = qs('#lightbox-video');
+  const notesEl = qs('#lightbox-notes');
+
+  const item = lb.items[lb.index];
+  if (!item || !box || !img || !vid || !notesEl) return;
+
+  box.style.display = 'flex';
+  qs('#lightbox-title').innerText = lb.title || '';
+
+  img.style.display = 'none';
+  vid.style.display = 'none';
+  try { vid.pause(); } catch {}
+
+  if ((item.type || '').startsWith('image')) {
+    img.src = item.src;
+    img.style.display = 'block';
+  } else {
+    vid.src = item.src;
+    vid.style.display = 'block';
+  }
+
+  notesEl.value = item.notes || '';
+  notesEl.oninput = (e) => {
+    const val = e.target.value;
+    lb.items[lb.index].notes = val;
+    if (typeof lb.saveNotes === 'function') lb.saveNotes(item.id, val);
+  };
+
+  lb.open = true;
+}
+
+function lbNext() {
+  if (!lb.items.length) return;
+  lb.index = (lb.index + 1) % lb.items.length;
+  lbShow();
+}
+
+function lbPrev() {
+  if (!lb.items.length) return;
+  lb.index = (lb.index - 1 + lb.items.length) % lb.items.length;
+  lbShow();
+}
+
+function lbBindMediaClickNext() {
+  const img = qs('#lightbox-img');
+  const vid = qs('#lightbox-video');
+  if (img) img.onclick = () => lbNext();
+  if (vid) vid.onclick = () => lbNext();
+}
+
+(function lbEnableSwipe(){
+  const box = qs('#lightbox');
+  if (!box) return;
+
+  let startX = 0, startY = 0, touching = false;
+
+  box.addEventListener('touchstart', (e) => {
+    if (!lb.open) return;
+    const t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    touching = true;
+  }, { passive: true });
+
+  box.addEventListener('touchend', (e) => {
+    if (!lb.open || !touching) return;
+    touching = false;
+
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      if (dx < 0) lbNext();
+      else lbPrev();
+    }
+  }, { passive: true });
+})();
+
+(function lbBindNavButtons(){
+  const prevBtn = qs('.lightbox-nav.prev');
+  const nextBtn = qs('.lightbox-nav.next');
+  if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); lbPrev(); };
+  if (nextBtn) nextBtn.onclick = (e) => { e.stopPropagation(); lbNext(); };
+})();
+
+lbBindMediaClickNext();
+
+// fechar ao clicar fora do conteúdo
+(function bindLightboxBackdropClose(){
+  const box = qs('#lightbox');
+  const content = qs('#lightbox .lightbox-content');
+  if (!box || !content) return;
+
+  box.addEventListener('click', (e) => {
+    if (e.target === box) {
+      try { qs('#lightbox-video')?.pause?.(); } catch {}
+      box.style.display = 'none';
+      lb.open = false;
+    }
+  });
+})();
+
+/* ---------- abrir lightbox do TREINO ---------- */
+async function openMediaLightbox(title, mediaLocalId) {
+  const ex = getCurrentExercise();
+  if (!ex) return;
+
+  const refs = Array.isArray(ex.media) ? ex.media : [];
+  const idx = refs.findIndex(x => x.id === mediaLocalId);
+  if (idx === -1) return;
+
+  const items = [];
+  for (const x of refs) {
+    if (!x?.ref) continue;
+    const rec = await mediaGetRecord(x.ref);
+    if (!rec?.blob) continue;
+    const url = await getMediaObjectURL(x.ref);
+    if (!url) continue;
+    items.push({ id: x.id, type: rec.type || x.type || 'image/jpeg', src: url, notes: x.notes || '' });
+  }
+
+  const idx2 = items.findIndex(x => x.id === mediaLocalId);
+  if (idx2 === -1) return;
+
+  lb.title = title;
+  lb.items = items.map(x => ({ ...x }));
+  lb.index = idx2;
+
+  lb.saveNotes = (id, value) => {
+    const exNow = getCurrentExercise();
+    if (!exNow) return;
+    const media = Array.isArray(exNow.media) ? [...exNow.media] : [];
+    const i = media.findIndex(x => x.id === id);
+    if (i !== -1) {
+      media[i] = { ...media[i], notes: value };
+      saveCurrentExercise({ media });
+    }
+  };
+
+  lbShow();
+}
+
+/* FECHAR LIGHTBOX (botão ×) */
+if (qs('.lightbox-close')) {
+  qs('.lightbox-close').onclick = () => {
+    const box = qs('#lightbox');
+    const vid = qs('#lightbox-video');
+    if (box) box.style.display = 'none';
+    try { vid.pause(); } catch {}
+    lb.open = false;
+  };
+}
+
+/* =========================================================
+   ALIMENTAÇÃO — estado/modais
 ========================================================= */
 let currentMealTypeId = null;
 let currentMealId = null;
@@ -678,17 +1023,16 @@ const mealsList = qs('#meals-list');
 const modalMealType = qs('#modal-mealtype');
 const modalMeal = qs('#modal-meal');
 
-/* MODAIS — abrir/fechar (food) */
 function openModalX(el){ if (el) el.style.display = 'flex'; }
 function closeModalX(el){ if (el) el.style.display = 'none'; }
 
 if (qs('#close-mealtype-modal')) qs('#close-mealtype-modal').onclick = () => closeModalX(modalMealType);
-if (qs('#close-meal-modal')) qs('#close-meal-modal').onclick = () => closeModalX(modalMeal);
+if (qs('#close-meal-modal'))     qs('#close-meal-modal').onclick     = () => closeModalX(modalMeal);
 
 if (modalMealType) modalMealType.addEventListener('click', e => { if (e.target === modalMealType) closeModalX(modalMealType); });
-if (modalMeal) modalMeal.addEventListener('click', e => { if (e.target === modalMeal) closeModalX(modalMeal); });
+if (modalMeal)     modalMeal.addEventListener('click',     e => { if (e.target === modalMeal)     closeModalX(modalMeal); });
 
-/* ---------- TIPOS DE REFEIÇÃO ---------- */
+/* ===================== TIPOS DE REFEIÇÃO ===================== */
 function renderMealTypes() {
   if (!mealTypesList) return;
 
@@ -801,7 +1145,7 @@ if (qs('#save-mealtype')) {
   };
 }
 
-/* ---------- REFEIÇÕES DO TIPO ---------- */
+/* ===================== REFEIÇÕES DO TIPO ===================== */
 function renderMeals() {
   if (!mealsList) return;
 
@@ -823,24 +1167,32 @@ function renderMeals() {
 
     const thumb = document.createElement('div');
     thumb.className = 'thumb';
+    thumb.textContent = '🍽️';
 
-    // thumb vem do MediaStore via ref
     const firstRef = (m.media || [])[0]?.ref;
-    const stored = firstRef ? mediaStoreGet(firstRef) : null;
+    if (firstRef) {
+      (async () => {
+        const rec = await mediaGetRecord(firstRef);
+        if (!rec?.blob) return;
 
-    if (stored) {
-      if (stored.type.startsWith('image')) {
-        const img = document.createElement('img');
-        img.src = stored.src;
-        thumb.appendChild(img);
-      } else {
-        const vid = document.createElement('video');
-        vid.src = stored.src;
-        vid.muted = true;
-        thumb.appendChild(vid);
-      }
-    } else {
-      thumb.textContent = '🍽️';
+        const url = await getMediaObjectURL(firstRef);
+        if (!url) return;
+
+        if (!thumb.isConnected) return;
+
+        thumb.textContent = '';
+        if ((rec.type || '').startsWith('image')) {
+          const img = document.createElement('img');
+          img.src = url;
+          thumb.appendChild(img);
+        } else {
+          const vid = document.createElement('video');
+          vid.src = url;
+          vid.muted = true;
+          vid.playsInline = true;
+          thumb.appendChild(vid);
+        }
+      })().catch(() => {});
     }
 
     const titleBox = document.createElement('div');
@@ -883,7 +1235,6 @@ function renderMeals() {
       saveMeals(loadMeals().filter(x => x.id !== m.id));
       renderMeals();
       renderMealTypes();
-      // não apagamos media do MediaStore aqui
     };
 
     actions.append(editBtn, delBtn);
@@ -938,7 +1289,7 @@ if (qs('#save-meal')) {
         mealTypeId: currentMealTypeId,
         title,
         notes: '',
-        media: [], // refs: [{id, type, ref, notes}]
+        media: [],
         createdAt: Date.now()
       });
     }
@@ -950,10 +1301,10 @@ if (qs('#save-meal')) {
   };
 }
 
-/* ---------- DETALHE DA REFEIÇÃO ---------- */
+/* ===================== DETALHE DA REFEIÇÃO ===================== */
 const mealTitleEl = qs('#meal-title');
 const mealNotesEl = qs('#meal-notes');
-const mealMediaGrid = qs('#meal-media-grid');
+const mealMediaGrid  = qs('#meal-media-grid');
 const mealMediaInput = qs('#meal-media-input');
 
 function getCurrentMeal() {
@@ -1022,35 +1373,32 @@ if (mealNotesEl) {
   });
 }
 
-/* ========= Upload media (MediaStore + refs) ========= */
+/* ========= Upload media (IndexedDB + refs) ========= */
 if (mealMediaInput) {
   mealMediaInput.onchange = async () => {
     const m = getCurrentMeal();
     if (!m) return;
 
-    const mediaRefs = m.media || [];
+    const mediaRefs = Array.isArray(m.media) ? [...m.media] : [];
 
-    for (const file of mealMediaInput.files) {
+    for (const file of (mealMediaInput.files || [])) {
       if (file.type.startsWith('image')) {
         try {
-          const src = await compressImageToDataURL(file, { maxSize: 1280, quality: 0.72 });
-          const mediaId = mediaStoreAdd({ type: 'image/jpeg', src });
-          mediaRefs.push({ id: uid(), type: 'image/jpeg', ref: mediaId, notes: '' });
+          const blob = await compressImageToBlob(file, { maxSize: 1280, quality: 0.72 });
+          const ref  = await mediaAddBlob({ type: 'image/jpeg', blob });
+          mediaRefs.push({ id: uid(), type: 'image/jpeg', ref, notes: '' });
         } catch (e) {
           console.error(e);
           alert('Não foi possível processar esta imagem.');
         }
       } else if (file.type.startsWith('video')) {
-        const reader = new FileReader();
-        await new Promise(resolve => {
-          reader.onload = e => {
-            const src = e.target.result;
-            const mediaId = mediaStoreAdd({ type: file.type, src });
-            mediaRefs.push({ id: uid(), type: file.type, ref: mediaId, notes: '' });
-            resolve();
-          };
-          reader.readAsDataURL(file);
-        });
+        try {
+          const ref = await mediaAddBlob({ type: file.type, blob: file });
+          mediaRefs.push({ id: uid(), type: file.type, ref, notes: '' });
+        } catch (e) {
+          console.error(e);
+          alert('Não foi possível guardar este vídeo.');
+        }
       }
     }
 
@@ -1067,199 +1415,81 @@ function renderMealMedia() {
   if (!m || !mealMediaGrid) return;
 
   mealMediaGrid.innerHTML = '';
-  const mediaArr = m.media || [];
+  const mediaArr = Array.isArray(m.media) ? m.media : [];
 
   mediaArr.forEach(x => {
-    const stored = x?.ref ? mediaStoreGet(x.ref) : null;
-    if (!stored) return;
-
     const wrap = document.createElement('div');
     wrap.className = 'media-item';
 
-    const el = document.createElement(stored.type.startsWith('image') ? 'img' : 'video');
-    el.src = stored.src;
-    if (!stored.type.startsWith('image')) el.muted = true;
+    const placeholder = document.createElement('div');
+    placeholder.style.fontSize = '22px';
+    placeholder.style.display = 'grid';
+    placeholder.style.placeItems = 'center';
+    placeholder.textContent = '⏳';
+    wrap.appendChild(placeholder);
 
-    el.onclick = () => openMealMediaLightbox(m.title || 'Media', x.id);
+    (async () => {
+      const rec = x?.ref ? await mediaGetRecord(x.ref) : null;
+      if (!rec?.blob) return;
 
-    const del = document.createElement('button');
-    del.textContent = '×';
-    del.onclick = (ev) => {
-      ev.stopPropagation();
+      const url = await getMediaObjectURL(x.ref);
+      if (!url) return;
 
-      // remove só a referência desta refeição
-      const updated = mediaArr.filter(z => z.id !== x.id);
-      saveCurrentMeal({ media: updated });
+      if (!wrap.isConnected) return;
 
-      // NÃO apagar do MediaStore aqui
-      renderMealMedia();
-      renderMeals();
-      renderMealTypes();
-    };
+      if (wrap.contains(placeholder)) wrap.removeChild(placeholder);
 
-    wrap.append(el, del);
+      const el = document.createElement((rec.type || '').startsWith('image') ? 'img' : 'video');
+      el.src = url;
+
+      if (!(rec.type || '').startsWith('image')) {
+        el.muted = true;
+        el.playsInline = true;
+      }
+
+      el.onclick = () => openMealMediaLightbox(m.title || 'Media', x.id);
+
+      const del = document.createElement('button');
+      del.textContent = '×';
+      del.onclick = (ev) => {
+        ev.stopPropagation();
+
+        const mealNow = getCurrentMeal();
+        if (!mealNow) return;
+
+        const updated = (mealNow.media || []).filter(z => z.id !== x.id);
+        saveCurrentMeal({ media: updated });
+
+        renderMealMedia();
+        renderMeals();
+        renderMealTypes();
+      };
+
+      wrap.append(el, del);
+    })().catch(() => {});
+
     mealMediaGrid.appendChild(wrap);
   });
 }
 
-/* ===================== LIGHTBOX: GALERIA (SWIPE + CLICK + NAV) ===================== */
-const lb = {
-  open: false,
-  title: '',
-  items: [],     // [{id, type, src, notes}]
-  index: 0,
-  saveNotes: null
-};
-
-function lbShow() {
-  const box = qs('#lightbox');
-  const img = qs('#lightbox-img');
-  const vid = qs('#lightbox-video');
-  const notesEl = qs('#lightbox-notes');
-
-  const item = lb.items[lb.index];
-  if (!item || !box || !img || !vid || !notesEl) return;
-
-  box.style.display = 'flex';
-  qs('#lightbox-title').innerText = lb.title || '';
-
-  img.style.display = 'none';
-  vid.style.display = 'none';
-  try { vid.pause(); } catch {}
-
-  if (item.type.startsWith('image')) {
-    img.src = item.src;
-    img.style.display = 'block';
-  } else {
-    vid.src = item.src;
-    vid.style.display = 'block';
-  }
-
-  notesEl.value = item.notes || '';
-  notesEl.oninput = (e) => {
-    const val = e.target.value;
-    lb.items[lb.index].notes = val;
-    if (typeof lb.saveNotes === 'function') lb.saveNotes(item.id, val);
-  };
-
-  lb.open = true;
-}
-
-function lbNext() {
-  if (!lb.items.length) return;
-  lb.index = (lb.index + 1) % lb.items.length;
-  lbShow();
-}
-
-function lbPrev() {
-  if (!lb.items.length) return;
-  lb.index = (lb.index - 1 + lb.items.length) % lb.items.length;
-  lbShow();
-}
-
-function lbBindMediaClickNext() {
-  const img = qs('#lightbox-img');
-  const vid = qs('#lightbox-video');
-  if (img) img.onclick = () => lbNext();
-  if (vid) vid.onclick = () => lbNext();
-}
-
-(function lbEnableSwipe(){
-  const box = qs('#lightbox');
-  if (!box) return;
-
-  let startX = 0;
-  let startY = 0;
-  let touching = false;
-
-  box.addEventListener('touchstart', (e) => {
-    if (!lb.open) return;
-    const t = e.touches[0];
-    startX = t.clientX;
-    startY = t.clientY;
-    touching = true;
-  }, { passive: true });
-
-  box.addEventListener('touchend', (e) => {
-    if (!lb.open || !touching) return;
-    touching = false;
-
-    const t = e.changedTouches[0];
-    const dx = t.clientX - startX;
-    const dy = t.clientY - startY;
-
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-      if (dx < 0) lbNext();
-      else lbPrev();
-    }
-  }, { passive: true });
-})();
-
-(function lbBindNavButtons(){
-  const prevBtn = qs('.lightbox-nav.prev');
-  const nextBtn = qs('.lightbox-nav.next');
-  if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); lbPrev(); };
-  if (nextBtn) nextBtn.onclick = (e) => { e.stopPropagation(); lbNext(); };
-})();
-
-lbBindMediaClickNext();
-
-/* =========================================================
-   LIGHTBOX OPEN (treino + alimentação) COM MediaStore (refs)
-========================================================= */
-function openMediaLightbox(title, mediaLocalId) {
-  const ex = getCurrentExercise();
-  if (!ex) return;
-
-  const refs = ex.media || []; // [{id,type,ref,notes}]
-  const idx = refs.findIndex(x => x.id === mediaLocalId);
-  if (idx === -1) return;
-
-  const items = refs
-    .map(x => {
-      const stored = x?.ref ? mediaStoreGet(x.ref) : null;
-      if (!stored) return null;
-      return { id: x.id, type: stored.type, src: stored.src, notes: x.notes || '' };
-    })
-    .filter(Boolean);
-
-  const idx2 = items.findIndex(x => x.id === mediaLocalId);
-  if (idx2 === -1) return;
-
-  lb.title = title;
-  lb.items = items.map(x => ({ ...x }));
-  lb.index = idx2;
-
-  // guardar notas no item local (não no MediaStore)
-  lb.saveNotes = (id, value) => {
-    const exNow = getCurrentExercise();
-    if (!exNow) return;
-    const media = exNow.media || [];
-    const i = media.findIndex(x => x.id === id);
-    if (i !== -1) {
-      media[i].notes = value;
-      saveCurrentExercise({ media });
-    }
-  };
-
-  lbShow();
-}
-
-function openMealMediaLightbox(title, mediaLocalId) {
+/* ---------- abrir lightbox da ALIMENTAÇÃO ---------- */
+async function openMealMediaLightbox(title, mediaLocalId) {
   const meal = getCurrentMeal();
   if (!meal) return;
 
-  const refs = meal.media || []; // [{id,type,ref,notes}]
+  const refs = Array.isArray(meal.media) ? meal.media : [];
   const idx = refs.findIndex(x => x.id === mediaLocalId);
   if (idx === -1) return;
 
-  const items = refs
-    .map(x => {
-      const stored = x?.ref ? mediaStoreGet(x.ref) : null;
-      if (!stored) return null;
-      return { id: x.id, type: stored.type, src: stored.src, notes: x.notes || '' };
-    })
-    .filter(Boolean);
+  const items = [];
+  for (const x of refs) {
+    if (!x?.ref) continue;
+    const rec = await mediaGetRecord(x.ref);
+    if (!rec?.blob) continue;
+    const url = await getMediaObjectURL(x.ref);
+    if (!url) continue;
+    items.push({ id: x.id, type: rec.type || x.type || 'image/jpeg', src: url, notes: x.notes || '' });
+  }
 
   const idx2 = items.findIndex(x => x.id === mediaLocalId);
   if (idx2 === -1) return;
@@ -1268,14 +1498,13 @@ function openMealMediaLightbox(title, mediaLocalId) {
   lb.items = items.map(x => ({ ...x }));
   lb.index = idx2;
 
-  // guardar notas no item local (não no MediaStore)
   lb.saveNotes = (id, value) => {
     const mealNow = getCurrentMeal();
     if (!mealNow) return;
-    const media = mealNow.media || [];
+    const media = Array.isArray(mealNow.media) ? [...mealNow.media] : [];
     const i = media.findIndex(x => x.id === id);
     if (i !== -1) {
-      media[i].notes = value;
+      media[i] = { ...media[i], notes: value };
       saveCurrentMeal({ media });
     }
   };
@@ -1283,26 +1512,15 @@ function openMealMediaLightbox(title, mediaLocalId) {
   lbShow();
 }
 
-/* FECHAR LIGHTBOX */
-if (qs('.lightbox-close')) {
-  qs('.lightbox-close').onclick = () => {
-    const box = qs('#lightbox');
-    const vid = qs('#lightbox-video');
-    if (box) box.style.display = 'none';
-    try { vid.pause(); } catch {}
-    lb.open = false;
-  };
-}
-
 /* =========================================================
    PROGRESSO
 ========================================================= */
-let chart;
-let editingId = null;
+let chart = null;
+let editingProgressId = null;
 
 if (qs('#add-record-btn')) {
   qs('#add-record-btn').onclick = () => {
-    editingId = null;
+    editingProgressId = null;
     qs('#modal-progress-title').textContent = 'Novo Registo';
     qs('#progress-form')?.reset?.();
     openModal(modalProgress);
@@ -1311,7 +1529,7 @@ if (qs('#add-record-btn')) {
 
 if (qs('#cancel-btn')) {
   qs('#cancel-btn').onclick = () => {
-    editingId = null;
+    editingProgressId = null;
     closeModal(modalProgress);
   };
 }
@@ -1327,15 +1545,15 @@ if (qs('#progress-form')) {
       notes: qs('#notes').value
     };
 
-    if (editingId) {
-      const idx = data.findIndex(x => x.id === editingId);
+    if (editingProgressId) {
+      const idx = data.findIndex(x => x.id === editingProgressId);
       if (idx !== -1) data[idx] = { ...data[idx], ...payload };
     } else {
       data.push({ id: uid(), ...payload });
     }
 
     saveProgress(data);
-    editingId = null;
+    editingProgressId = null;
     e.target.reset();
     closeModal(modalProgress);
     renderProgress();
@@ -1349,9 +1567,7 @@ function renderProgress() {
   const data = loadProgress();
   list.innerHTML = '';
 
-  const sortedDesc = [...data].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const sortedDesc = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   sortedDesc.forEach(r => {
     const row = document.createElement('div');
@@ -1363,7 +1579,6 @@ function renderProgress() {
     const text = document.createElement('div');
     text.innerHTML = `<div class="list-title">${r.date}</div>
                       <div class="list-sub">${r.weight} kg${r.notes ? ` — ${r.notes}` : ''}</div>`;
-
     left.append(text);
 
     const actions = document.createElement('div');
@@ -1374,7 +1589,7 @@ function renderProgress() {
     editBtn.textContent = '✏️';
     editBtn.title = 'Editar';
     editBtn.onclick = () => {
-      editingId = r.id;
+      editingProgressId = r.id;
       qs('#date').value = r.date || '';
       qs('#weight').value = (r.weight ?? '');
       qs('#notes').value = r.notes || '';
@@ -1401,9 +1616,7 @@ function renderProgress() {
     list.appendChild(row);
   });
 
-  const sortedAsc = [...data].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const sortedAsc = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const sumInitial = qs('#sum-initial');
   const sumCurrent = qs('#sum-current');
@@ -1415,8 +1628,8 @@ function renderProgress() {
       sumCurrent.textContent = '—';
       sumDiff.textContent = '—';
     } else {
-      const initial = sortedAsc[0].weight;
-      const current = sortedAsc[sortedAsc.length - 1].weight;
+      const initial = Number(sortedAsc[0].weight);
+      const current = Number(sortedAsc[sortedAsc.length - 1].weight);
       const diff = current - initial;
 
       sumInitial.textContent = `${initial.toFixed(1)} kg`;
@@ -1485,29 +1698,13 @@ const moreMenu = qs('#more-menu');
 const openExportBtn = qs('#open-export');
 const openImportBtn = qs('#open-import');
 const openCleanBtn  = qs('#open-clean');
-const closeMoreBtn = qs('#close-more');
+const closeMoreBtn  = qs('#close-more');
 
 const modalExport = qs('#modal-export');
 const modalImport = qs('#modal-import');
 const modalClean  = qs('#modal-clean');
 
-/* --- helpers export/import --- */
-function safeParseJSON(text) {
-  try { return JSON.parse(text); } catch { return null; }
-}
-function downloadJSON(obj, filename) {
-  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-/* --- abrir/fechar menu ⋯ --- */
+/* --- menu ⋯ --- */
 function showMoreMenu() {
   if (!moreMenu) return;
   moreMenu.classList.add('show');
@@ -1534,20 +1731,28 @@ document.addEventListener('click', (e) => {
   hideMoreMenu();
 });
 
-/* ===================== EXPORT (pergunta "com fotos?") ===================== */
+/* ===================== EXPORT ===================== */
 if (qs('#close-export-modal')) qs('#close-export-modal').onclick = () => closeModal(modalExport);
 if (modalExport) modalExport.addEventListener('click', e => { if (e.target === modalExport) closeModal(modalExport); });
 
-if (openExportBtn) openExportBtn.onclick = () => {
-  hideMoreMenu();
-  openModal(modalExport);
-};
-if (qs('#back-export')) qs('#back-export').onclick = () => {
-  closeModal(modalExport);
-  showMoreMenu();
-};
+if (openExportBtn) openExportBtn.onclick = () => { hideMoreMenu(); openModal(modalExport); };
+if (qs('#back-export')) qs('#back-export').onclick = () => { closeModal(modalExport); showMoreMenu(); };
 
-function buildExportPayload(scope, includeMedia) {
+async function mediaExportAll() {
+  const ids = await mediaListIds();
+  const items = {};
+
+  for (const id of ids) {
+    const rec = await mediaGetRecord(id);
+    if (!rec?.blob) continue;
+    const src = await blobToDataURL(rec.blob);
+    items[id] = { id, type: rec.type || 'application/octet-stream', src, createdAt: rec.createdAt || Date.now() };
+  }
+
+  return { version: 1, items };
+}
+
+async function buildExportPayload(scope, includeMedia) {
   const payload = {
     app: 'App-Fitness',
     exportedAt: new Date().toISOString(),
@@ -1567,15 +1772,15 @@ function buildExportPayload(scope, includeMedia) {
   }
 
   if (includeMedia) {
-    payload.data.media = { store: loadMediaStore() };
+    payload.data.media = { store: await mediaExportAll() };
   }
 
   return payload;
 }
 
-function doExport(scope) {
+async function doExport(scope) {
   const includeMedia = confirm('Exportar com fotos/vídeos? (OK = com, Cancelar = sem)');
-  const p = buildExportPayload(scope, includeMedia);
+  const p = await buildExportPayload(scope, includeMedia);
 
   const date = new Date();
   const y = date.getFullYear();
@@ -1586,12 +1791,12 @@ function doExport(scope) {
   downloadJSON(p, `App-Fitness_${scope}_${suffix}_${y}-${m}-${d}.json`);
 }
 
-if (qs('#exp-all')) qs('#exp-all').onclick = () => doExport('all');
-if (qs('#exp-train')) qs('#exp-train').onclick = () => doExport('train');
-if (qs('#exp-food')) qs('#exp-food').onclick = () => doExport('food');
+if (qs('#exp-all'))      qs('#exp-all').onclick      = () => doExport('all');
+if (qs('#exp-train'))    qs('#exp-train').onclick    = () => doExport('train');
+if (qs('#exp-food'))     qs('#exp-food').onclick     = () => doExport('food');
 if (qs('#exp-progress')) qs('#exp-progress').onclick = () => doExport('progress');
 
-/* ===================== IMPORT (permite vir com/sem media) ===================== */
+/* ===================== IMPORT ===================== */
 const impStep1 = qs('#import-step-1');
 const impStep2 = qs('#import-step-2');
 const impStep3 = qs('#import-step-3');
@@ -1620,24 +1825,16 @@ function resetImportFlow() {
 }
 
 if (qs('#close-import-modal')) qs('#close-import-modal').onclick = () => { resetImportFlow(); closeModal(modalImport); };
-if (modalImport) modalImport.addEventListener('click', e => { if (e.target === modalImport) { resetImportFlow(); closeModal(modalImport); } });
+if (modalImport) modalImport.addEventListener('click', e => {
+  if (e.target === modalImport) { resetImportFlow(); closeModal(modalImport); }
+});
 
-if (openImportBtn) openImportBtn.onclick = () => {
-  hideMoreMenu();
-  resetImportFlow();
-  openModal(modalImport);
-};
+if (openImportBtn) openImportBtn.onclick = () => { hideMoreMenu(); resetImportFlow(); openModal(modalImport); };
 
-if (qs('#back-import-1')) qs('#back-import-1').onclick = () => {
-  resetImportFlow();
-  closeModal(modalImport);
-  showMoreMenu();
-};
-
+if (qs('#back-import-1')) qs('#back-import-1').onclick = () => { resetImportFlow(); closeModal(modalImport); showMoreMenu(); };
 if (qs('#back-import-2')) qs('#back-import-2').onclick = () => showImportStep(1);
 if (qs('#back-import-3')) qs('#back-import-3').onclick = () => showImportStep(2);
 
-/* escolher scope no step 1 */
 qsa('[data-imp-scope]').forEach(btn => {
   btn.addEventListener('click', () => {
     impScope = btn.dataset.impScope || 'all';
@@ -1645,7 +1842,6 @@ qsa('[data-imp-scope]').forEach(btn => {
   });
 });
 
-/* escolher ficheiro no step 2 */
 if (impFile) {
   impFile.addEventListener('change', async () => {
     impJson = null;
@@ -1668,7 +1864,7 @@ if (impFile) {
 
 if (goImportModeBtn) goImportModeBtn.onclick = () => showImportStep(3);
 
-/* merge helpers (sem perder relações) */
+/* ---- merge helpers ---- */
 function remapId(oldId, map) {
   if (!oldId) return oldId;
   return map.get(oldId) || oldId;
@@ -1699,172 +1895,140 @@ function mergeArrayById(existing, incoming, { remap = null } = {}) {
   return { merged: out, idMap };
 }
 
-/* =========================================================
-   ✅ CORREÇÃO IMPORT (FICHEIROS ANTIGOS COM src INLINE)
-   - Se o JSON antigo não trouxer data.media.store,
-     mas trouxer media: [{src: "..."}], converte para MediaStore+ref.
-========================================================= */
-function convertInlineSrcMediaToRefs_INCOMING(data) {
-  if (!data || typeof data !== 'object') return;
+/* ---- Import: store IDB ---- */
+async function mergeMediaStoreReplace_IDB(incomingStore) {
+  const items = incomingStore?.items || {};
+  await mediaClearAll();
 
-  // se já vier com store e refs, não mexemos aqui.
-  // (mesmo assim, vamos só converter casos residuais com src.)
-  const store = loadMediaStore();
-  if (!store.items || typeof store.items !== 'object') store.items = {};
+  for (const [id, it] of Object.entries(items)) {
+    if (!it) continue;
 
-  let changedStore = false;
-
-  function addToStore(type, src) {
-    const id = uid();
-    store.items[id] = { id, type: type || 'image/jpeg', src, createdAt: Date.now() };
-    changedStore = true;
-    return id;
-  }
-
-  function convertArray(arr) {
-    if (!Array.isArray(arr)) return;
-
-    for (const item of arr) {
-      if (!item || typeof item !== 'object') continue;
-
-      // se já tem ref, ok
-      if (item.ref) continue;
-
-      // se tem src inline, converte
-      if (typeof item.src === 'string' && item.src.startsWith('data:')) {
-        const type = item.type || (item.src.startsWith('data:video') ? 'video/mp4' : 'image/jpeg');
-        const mediaId = addToStore(type, item.src);
-
-        item.ref = mediaId;
-        item.type = type;
-
-        // remove src para ficar no formato novo
-        delete item.src;
-      }
+    // formato novo: src = dataURL
+    if (typeof it.src === 'string' && it.src.startsWith('data:')) {
+      const blob = dataURLToBlob(it.src);
+      if (!blob) continue;
+      await mediaPutBlobWithId({
+        id,
+        type: it.type || blob.type || 'application/octet-stream',
+        blob,
+        createdAt: it.createdAt || Date.now()
+      });
     }
   }
-
-  const exs = data?.train?.exercises;
-  if (Array.isArray(exs)) {
-    exs.forEach(ex => {
-      if (!ex || typeof ex !== 'object') return;
-      if (!Array.isArray(ex.media)) return;
-      convertArray(ex.media);
-    });
-  }
-
-  const meals = data?.food?.meals;
-  if (Array.isArray(meals)) {
-    meals.forEach(meal => {
-      if (!meal || typeof meal !== 'object') return;
-      if (!Array.isArray(meal.media)) return;
-      convertArray(meal.media);
-    });
-  }
-
-  if (changedStore) saveMediaStore(store);
 }
 
-/* ===== MediaStore import helpers ===== */
-function mergeMediaStoreReplace(incomingStore) {
-  if (!incomingStore || typeof incomingStore !== 'object') return;
-
-  // tolera formato antigo (obj direto) e normaliza
-  const normalized = incomingStore.items
-    ? { version: incomingStore.version || 1, items: incomingStore.items || {} }
-    : { version: 1, items: incomingStore || {} };
-
-  saveMediaStore(normalized);
-}
-
-function mergeMediaStoreAdd(incomingStore) {
-  if (!incomingStore || typeof incomingStore !== 'object') return;
-
-  const existing = loadMediaStore(); // {version, items}
-  const merged = {
-    version: existing.version || 1,
-    items: { ...(existing.items || {}) }
-  };
-
-  const incomingItems = incomingStore.items ? (incomingStore.items || {}) : (incomingStore || {});
+async function mergeMediaStoreAdd_IDB(incomingStore) {
+  const items = incomingStore?.items || {};
   const idMap = new Map();
+  const existing = new Set(await mediaListIds());
 
-  for (const [mid, item] of Object.entries(incomingItems)) {
-    if (!item || typeof item !== 'object') continue;
+  for (const [id, it] of Object.entries(items)) {
+    if (!it) continue;
+    if (typeof it.src !== 'string' || !it.src.startsWith('data:')) continue;
 
-    if (!merged.items[mid]) {
-      merged.items[mid] = item;
-      continue;
+    let targetId = id;
+    if (existing.has(id)) {
+      targetId = uid();
+      idMap.set(id, targetId);
     }
 
-    const newId = uid();
-    idMap.set(mid, newId);
-    merged.items[newId] = { ...item, id: newId };
+    const blob = dataURLToBlob(it.src);
+    if (!blob) continue;
+
+    await mediaPutBlobWithId({
+      id: targetId,
+      type: it.type || blob.type || 'application/octet-stream',
+      blob,
+      createdAt: it.createdAt || Date.now()
+    });
+
+    existing.add(targetId);
   }
 
-  saveMediaStore(merged);
   return idMap;
 }
 
 function remapMediaRefsInTrainAndFood(data, mediaIdMap) {
   if (!mediaIdMap || !(mediaIdMap instanceof Map) || mediaIdMap.size === 0) return;
 
-  const exs = data?.train?.exercises || [];
-  exs.forEach(ex => (ex.media || []).forEach(m => {
+  (data?.train?.exercises || []).forEach(ex => (ex.media || []).forEach(m => {
     if (m?.ref && mediaIdMap.has(m.ref)) m.ref = mediaIdMap.get(m.ref);
   }));
 
-  const meals = data?.food?.meals || [];
-  meals.forEach(meal => (meal.media || []).forEach(m => {
+  (data?.food?.meals || []).forEach(meal => (meal.media || []).forEach(m => {
     if (m?.ref && mediaIdMap.has(m.ref)) m.ref = mediaIdMap.get(m.ref);
   }));
 }
 
-/* =========================================================
-   ✅ AQUI ESTÁ A CORREÇÃO PRINCIPAL NO IMPORT:
-   - Antes de aplicar replace/add:
-     1) se o ficheiro traz store → importa store
-     2) se o ficheiro NÃO traz store mas traz media com src inline → converte
-========================================================= */
+/* ---- Converter media inline (src base64) -> refs IDB ---- */
+async function convertInlineSrcMediaToRefs_INCOMING_IDB(data, { idMapFromStore = null } = {}) {
+  if (!data || typeof data !== 'object') return;
 
-function applyReplace(scope, data) {
-  // 1) se existir store no ficheiro, substitui MediaStore
-  if (data?.media?.store) mergeMediaStoreReplace(data.media.store);
+  async function ensureRef(item) {
+    if (!item || typeof item !== 'object') return;
 
-  // 2) converter quaisquer src inline que venham no JSON (antigo) para refs
-  //    (Isto garante compatibilidade mesmo sem data.media.store)
-  convertInlineSrcMediaToRefs_INCOMING(data);
+    // já tem ref? só remap se preciso
+    if (item.ref) {
+      if (idMapFromStore && idMapFromStore.has(item.ref)) item.ref = idMapFromStore.get(item.ref);
+      if ('src' in item) delete item.src;
+      return;
+    }
+
+    // src inline -> cria blob + guarda em IDB + ref
+    if (typeof item.src === 'string' && item.src.startsWith('data:')) {
+      const blob = dataURLToBlob(item.src);
+      if (!blob) return;
+
+      const type = item.type || blob.type || (item.src.startsWith('data:video') ? 'video/mp4' : 'image/jpeg');
+      const ref = await mediaAddBlob({ type, blob });
+
+      item.ref = ref;
+      item.type = type;
+      delete item.src;
+    }
+  }
+
+  async function convertArray(arr) {
+    if (!Array.isArray(arr)) return;
+    for (const item of arr) await ensureRef(item);
+  }
+
+  const exs = data?.train?.exercises;
+  if (Array.isArray(exs)) for (const ex of exs) if (Array.isArray(ex.media)) await convertArray(ex.media);
+
+  const meals = data?.food?.meals;
+  if (Array.isArray(meals)) for (const meal of meals) if (Array.isArray(meal.media)) await convertArray(meal.media);
+}
+
+/* ---- Apply import modes ---- */
+async function applyReplace(scope, data) {
+  if (data?.media?.store) await mergeMediaStoreReplace_IDB(data.media.store);
+  await convertInlineSrcMediaToRefs_INCOMING_IDB(data);
 
   if (scope === 'all' || scope === 'train') {
     const t = data?.train;
-    if (t?.days && t?.exercises) {
-      saveDays(t.days);
-      saveExercises(t.exercises);
-    }
+    if (t?.days && t?.exercises) { saveDays(t.days); saveExercises(t.exercises); }
   }
+
   if (scope === 'all' || scope === 'food') {
     const f = data?.food;
-    if (f?.mealtypes && f?.meals) {
-      saveMealTypes(f.mealtypes);
-      saveMeals(f.meals);
-    }
+    if (f?.mealtypes && f?.meals) { saveMealTypes(f.mealtypes); saveMeals(f.meals); }
   }
+
   if (scope === 'all' || scope === 'progress') {
     const p = data?.progress;
     if (p?.records) saveProgress(p.records);
   }
 }
 
-function applyAdd(scope, data) {
-  // 1) se existir store no ficheiro, junta e remapeia colisões de ids do store
+async function applyAdd(scope, data) {
   let mediaIdMap = null;
   if (data?.media?.store) {
-    mediaIdMap = mergeMediaStoreAdd(data.media.store) || null;
+    mediaIdMap = await mergeMediaStoreAdd_IDB(data.media.store);
     remapMediaRefsInTrainAndFood(data, mediaIdMap);
   }
 
-  // 2) converter quaisquer src inline (antigo) para refs (mesmo que não haja store no ficheiro)
-  convertInlineSrcMediaToRefs_INCOMING(data);
+  await convertInlineSrcMediaToRefs_INCOMING_IDB(data, { idMapFromStore: mediaIdMap });
 
   if (scope === 'all' || scope === 'train') {
     const t = data?.train;
@@ -1912,31 +2076,33 @@ function afterImportRefresh() {
 
   if (qs('#screenDay')?.classList.contains('active')) renderExercises();
   if (qs('#screenMealType')?.classList.contains('active')) renderMeals();
+
   if (qs('#screenExercise')?.classList.contains('active')) {
     const ex = getCurrentExercise();
     if (ex) renderExerciseMedia();
   }
+
   if (qs('#screenMeal')?.classList.contains('active')) {
     const m = getCurrentMeal();
     if (m) renderMealMedia();
   }
 }
 
-function doImport(mode) {
+async function doImport(mode) {
   if (!impJson?.data) return alert('Nenhum ficheiro carregado.');
 
   const data = impJson.data;
   const hasTrain = !!data.train;
-  const hasFood = !!data.food;
-  const hasProg = !!data.progress;
+  const hasFood  = !!data.food;
+  const hasProg  = !!data.progress;
 
-  if (impScope === 'train' && !hasTrain) return alert('Este ficheiro não tem dados de treino.');
-  if (impScope === 'food' && !hasFood) return alert('Este ficheiro não tem dados de alimentação.');
-  if (impScope === 'progress' && !hasProg) return alert('Este ficheiro não tem dados de progresso.');
-  if (impScope === 'all' && !(hasTrain || hasFood || hasProg)) return alert('Este ficheiro não tem dados reconhecidos.');
+  if (impScope === 'train'    && !hasTrain) return alert('Este ficheiro não tem dados de treino.');
+  if (impScope === 'food'     && !hasFood)  return alert('Este ficheiro não tem dados de alimentação.');
+  if (impScope === 'progress' && !hasProg)  return alert('Este ficheiro não tem dados de progresso.');
+  if (impScope === 'all'      && !(hasTrain || hasFood || hasProg)) return alert('Este ficheiro não tem dados reconhecidos.');
 
-  if (mode === 'replace') applyReplace(impScope, data);
-  else applyAdd(impScope, data);
+  if (mode === 'replace') await applyReplace(impScope, data);
+  else await applyAdd(impScope, data);
 
   afterImportRefresh();
   alert('Importação concluída ✅');
@@ -1945,26 +2111,19 @@ function doImport(mode) {
   closeModal(modalImport);
 }
 
-if (impReplaceBtn) impReplaceBtn.onclick = () => {
+if (impReplaceBtn) impReplaceBtn.onclick = async () => {
   const ok = confirm('Substituir vai apagar os dados existentes nessa secção. Queres continuar?');
   if (!ok) return;
-  doImport('replace');
+  await doImport('replace');
 };
 
-if (impAddBtn) impAddBtn.onclick = () => doImport('add');
+if (impAddBtn) impAddBtn.onclick = async () => {
+  await doImport('add');
+};
 
 /* =========================================================
-   LIMPEZA: remover media não usados
+   LIMPEZA: remover media não usados (IndexedDB)
 ========================================================= */
-function approxBytesFromDataURL(dataUrl) {
-  if (!dataUrl || typeof dataUrl !== 'string') return 0;
-  const comma = dataUrl.indexOf(',');
-  if (comma === -1) return 0;
-  const b64 = dataUrl.slice(comma + 1);
-  const padding = (b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0);
-  return Math.max(0, Math.floor((b64.length * 3) / 4) - padding);
-}
-
 function collectUsedMediaIds() {
   const used = new Set();
   loadExercises().forEach(ex => (ex.media || []).forEach(m => { if (m?.ref) used.add(m.ref); }));
@@ -1972,70 +2131,57 @@ function collectUsedMediaIds() {
   return used;
 }
 
-function countMediaStoreStats(storeObj) {
-  const items = storeObj?.items || {};
-  const ids = Object.keys(items);
+async function countMediaStats_IDB() {
+  const all = await mediaListAllMeta();
   let bytes = 0;
-
-  for (const id of ids) {
-    const src = items[id]?.src || '';
-    bytes += approxBytesFromDataURL(src);
-  }
-
-  return { count: ids.length, approxBytes: bytes };
+  for (const it of all) bytes += (it.size || 0);
+  return { count: all.length, bytes };
 }
 
-function cleanUnusedMedia({ dryRun = true } = {}) {
-  const store = loadMediaStore(); // {version, items}
+async function cleanUnusedMedia_IDB({ dryRun = true } = {}) {
   const used = collectUsedMediaIds();
-
-  const items = store.items || {};
-  const allIds = Object.keys(items);
-  const unused = allIds.filter(id => !used.has(id));
+  const all = await mediaListAllMeta();
+  const unused = all.filter(x => !used.has(x.id));
 
   if (dryRun) {
-    const before = countMediaStoreStats(store);
-    const afterItems = { ...items };
-    unused.forEach(id => { delete afterItems[id]; });
-    const after = countMediaStoreStats({ ...store, items: afterItems });
-    return { unusedCount: unused.length, before, after };
+    const before = await countMediaStats_IDB();
+    const unusedBytes = unused.reduce((acc, x) => acc + (x.size || 0), 0);
+    const afterBytes = Math.max(0, before.bytes - unusedBytes);
+    return { unusedCount: unused.length, before, after: { count: before.count - unused.length, bytes: afterBytes } };
   }
 
-  const updatedItems = { ...items };
-  unused.forEach(id => { delete updatedItems[id]; });
+  for (const x of unused) {
+    await mediaDelete(x.id);
+    revokeMediaObjectURL(x.id);
+  }
 
-  const before = countMediaStoreStats(store);
-  const updatedStore = { ...store, items: updatedItems };
-  saveMediaStore(updatedStore);
-  const after = countMediaStoreStats(updatedStore);
-
-  return { unusedCount: unused.length, before, after };
+  const after = await countMediaStats_IDB();
+  return { unusedCount: unused.length, after };
 }
 
-function updateCleanModalInfo() {
+async function updateCleanModalInfo() {
   const info = qs('#clean-info');
   if (!info) return;
 
-  const store = loadMediaStore();
-  const stats = countMediaStoreStats(store);
-  const dry = cleanUnusedMedia({ dryRun: true });
+  const stats = await countMediaStats_IDB();
+  const dry = await cleanUnusedMedia_IDB({ dryRun: true });
 
   const mb = (n) => (n / (1024*1024)).toFixed(2);
 
   info.innerHTML = `
     <div style="font-weight:800;margin-bottom:6px;">Estado do armazenamento</div>
     <div style="color:#6b7280;font-size:13px;line-height:18px;">
-      Itens no MediaStore: <b>${stats.count}</b><br>
-      Tamanho aprox.: <b>${mb(stats.approxBytes)} MB</b><br><br>
+      Itens no armazenamento: <b>${stats.count}</b><br>
+      Tamanho aprox.: <b>${mb(stats.bytes)} MB</b><br><br>
       Itens não usados (podem ser limpos): <b>${dry.unusedCount}</b><br>
-      Se limpares, fica aprox.: <b>${mb(dry.after.approxBytes)} MB</b>
+      Se limpares, fica aprox.: <b>${mb(dry.after.bytes)} MB</b>
     </div>
   `;
 }
 
-if (openCleanBtn) openCleanBtn.onclick = () => {
+if (openCleanBtn) openCleanBtn.onclick = async () => {
   hideMoreMenu();
-  updateCleanModalInfo();
+  await updateCleanModalInfo();
   openModal(modalClean);
 };
 
@@ -2048,78 +2194,83 @@ if (qs('#back-clean')) qs('#back-clean').onclick = () => {
 };
 
 if (qs('#do-clean')) {
-  qs('#do-clean').onclick = () => {
-    const dry = cleanUnusedMedia({ dryRun: true });
+  qs('#do-clean').onclick = async () => {
+    const dry = await cleanUnusedMedia_IDB({ dryRun: true });
     if (dry.unusedCount === 0) {
       alert('Não há fotos/vídeos não usados para limpar ✅');
-      updateCleanModalInfo();
+      await updateCleanModalInfo();
       return;
     }
 
     const ok = confirm(`Isto vai remover ${dry.unusedCount} itens não usados do armazenamento.\nQueres continuar?`);
     if (!ok) return;
 
-    const res = cleanUnusedMedia({ dryRun: false });
-    alert(`Limpeza concluída ✅\nRemovidos: ${res.unusedCount}`);
-    updateCleanModalInfo();
+    await cleanUnusedMedia_IDB({ dryRun: false });
+    alert(`Limpeza concluída ✅\nRemovidos: ${dry.unusedCount}`);
+    await updateCleanModalInfo();
   };
 }
 
 /* =========================================================
-   MIGRAÇÃO: converter dados antigos (inline src) p/ MediaStore
+   MIGRAÇÃO (1x): converter dados antigos (inline src) -> refs IDB
 ========================================================= */
-const MIGRATION_KEY = 'ft_media_migrated_v1';
+const MIGRATION_KEY = 'ft_media_migrated_idb_v1';
 
-function migrateInlineMediaToStoreOnce() {
+async function migrateInlineMediaToIDBOnce() {
   if (localStorage.getItem(MIGRATION_KEY) === '1') return;
-
-  const store = loadMediaStore();
-  if (!store.items) store.items = {};
-
-  function addToStore(type, src) {
-    const id = uid();
-    store.items[id] = { id, type, src, createdAt: Date.now() };
-    return id;
-  }
 
   let changed = false;
 
-  // exercícios (antigo: [{id,type,src,notes}])
+  // exercícios: legacy [{id,type,src,notes}] -> [{id,type,ref,notes}]
   const exs = loadExercises();
-  exs.forEach(ex => {
-    const arr = ex.media || [];
-    if (arr.some(m => m && typeof m === 'object' && 'ref' in m)) return;
+  for (const ex of exs) {
+    const arr = Array.isArray(ex.media) ? ex.media : [];
 
-    const newArr = arr
-      .filter(m => m && m.src)
-      .map(m => {
-        const mediaId = addToStore(m.type || 'image/jpeg', m.src);
-        changed = true;
-        return { id: m.id || uid(), type: m.type || 'image/jpeg', ref: mediaId, notes: m.notes || '' };
-      });
+    // se já tem refs, ignora
+    if (arr.some(m => m && typeof m === 'object' && 'ref' in m)) continue;
 
+    const newArr = [];
+    for (const m of arr) {
+      if (!m || typeof m !== 'object') continue;
+      if (!m.src || typeof m.src !== 'string' || !m.src.startsWith('data:')) continue;
+
+      const blob = dataURLToBlob(m.src);
+      if (!blob) continue;
+
+      const type = m.type || blob.type || 'image/jpeg';
+      const ref = await mediaAddBlob({ type, blob });
+
+      newArr.push({ id: m.id || uid(), type, ref, notes: m.notes || '' });
+      changed = true;
+    }
     ex.media = newArr;
-  });
+  }
 
-  // refeições (antigo: [{id,type,src,notes}])
+  // refeições
   const meals = loadMeals();
-  meals.forEach(meal => {
-    const arr = meal.media || [];
-    if (arr.some(m => m && typeof m === 'object' && 'ref' in m)) return;
+  for (const meal of meals) {
+    const arr = Array.isArray(meal.media) ? meal.media : [];
 
-    const newArr = arr
-      .filter(m => m && m.src)
-      .map(m => {
-        const mediaId = addToStore(m.type || 'image/jpeg', m.src);
-        changed = true;
-        return { id: m.id || uid(), type: m.type || 'image/jpeg', ref: mediaId, notes: m.notes || '' };
-      });
+    if (arr.some(m => m && typeof m === 'object' && 'ref' in m)) continue;
 
+    const newArr = [];
+    for (const m of arr) {
+      if (!m || typeof m !== 'object') continue;
+      if (!m.src || typeof m.src !== 'string' || !m.src.startsWith('data:')) continue;
+
+      const blob = dataURLToBlob(m.src);
+      if (!blob) continue;
+
+      const type = m.type || blob.type || 'image/jpeg';
+      const ref = await mediaAddBlob({ type, blob });
+
+      newArr.push({ id: m.id || uid(), type, ref, notes: m.notes || '' });
+      changed = true;
+    }
     meal.media = newArr;
-  });
+  }
 
   if (changed) {
-    saveMediaStore(store);
     saveExercises(exs);
     saveMeals(meals);
   }
@@ -2130,14 +2281,26 @@ function migrateInlineMediaToStoreOnce() {
 /* =========================================================
    INIT (robusto em mobile/PWA)
 ========================================================= */
-function initApp() {
-  try { migrateInlineMediaToStoreOnce(); } catch (e) { console.error('Migration error', e); }
+let __appInited = false;
+
+async function initApp() {
+  if (__appInited) return;
+  __appInited = true;
+
+  try { await mediaEnsureDB(); } catch (e) { console.error('mediaEnsureDB error', e); }
+  try { await migrateInlineMediaToIDBOnce(); } catch (e) { console.error('Migration error', e); }
 
   try { renderDays(); } catch (e) { console.error('renderDays error', e); }
-  try { renderProgress(); } catch (e) { console.error('renderProgress error', e); }
   try { renderMealTypes(); } catch (e) { console.error('renderMealTypes error', e); }
+  try { renderProgress(); } catch (e) { console.error('renderProgress error', e); }
 }
 
 // iOS/Safari às vezes precisa disto:
-document.addEventListener('DOMContentLoaded', initApp);
-window.addEventListener('load', initApp);
+document.addEventListener('DOMContentLoaded', () => { initApp(); });
+window.addEventListener('load', () => { initApp(); });
+window.addEventListener('pageshow', () => { initApp(); });
+
+// libertar objectURLs ao sair
+window.addEventListener('beforeunload', () => {
+  try { revokeAllMediaObjectURLs(); } catch {}
+});
