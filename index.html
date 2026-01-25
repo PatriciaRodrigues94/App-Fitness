@@ -160,33 +160,72 @@
       <button id="add-record-btn" class="icon-btn" aria-label="Adicionar registo">+</button>
     </div>
 
-    <section class="card">
-      <div class="card-title">Gráfico de Progresso</div>
-      <div class="chart-wrap">
-        <canvas id="weightChart" width="400" height="150"></canvas>
-      </div>
-    </section>
+    <!-- ✅ NOVO: TABS no Progresso -->
+    <div class="progress-tabs" role="tablist" aria-label="Separadores do Progresso">
+      <button type="button" id="tab-progress-records" class="progress-tab active" role="tab" aria-selected="true" aria-controls="progress-panel-records">
+        Registos
+      </button>
+      <button type="button" id="tab-progress-compare" class="progress-tab" role="tab" aria-selected="false" aria-controls="progress-panel-compare">
+        Comparar fotos
+      </button>
+    </div>
 
-    <section class="card">
-      <div class="card-title">Resumo</div>
-      <div class="summary-grid">
-        <div class="summary-item">
-          <div class="summary-label">Peso Inicial</div>
-          <div class="summary-value" id="sum-initial">—</div>
+    <!-- ✅ Painel 1: Registos (como já tinhas) -->
+    <div id="progress-panel-records" class="progress-panel active" role="tabpanel" aria-labelledby="tab-progress-records">
+      <section class="card">
+        <div class="card-title">Gráfico de Progresso</div>
+        <div class="chart-wrap">
+          <canvas id="weightChart" width="400" height="150"></canvas>
         </div>
-        <div class="summary-item">
-          <div class="summary-label">Peso Atual</div>
-          <div class="summary-value" id="sum-current">—</div>
-        </div>
-        <div class="summary-item">
-          <div class="summary-label">Diferença</div>
-          <div class="summary-value" id="sum-diff">—</div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <div class="section-title">Histórico de Registos</div>
-    <div id="progress-list" class="progress-list"></div>
+      <section class="card">
+        <div class="card-title">Resumo</div>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-label">Peso Inicial</div>
+            <div class="summary-value" id="sum-initial">—</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Peso Atual</div>
+            <div class="summary-value" id="sum-current">—</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Diferença</div>
+            <div class="summary-value" id="sum-diff">—</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-title">Histórico de Registos</div>
+      <div id="progress-list" class="progress-list"></div>
+    </div>
+
+    <!-- ✅ Painel 2: Comparar fotos (novo) -->
+    <div id="progress-panel-compare" class="progress-panel" role="tabpanel" aria-labelledby="tab-progress-compare">
+      <section class="card">
+        <div class="card-title">Selecionar registos</div>
+        <div style="color:#6b7280;font-size:13px;line-height:18px;">
+          Seleciona os registos que queres comparar. Cada registo aparece numa linha com 3 colunas fixas:
+          <b>Frente</b>, <b>Lado</b>, <b>Costas</b>.
+        </div>
+
+        <!-- Lista de seleção (o JS vai preencher com checkboxes) -->
+        <div style="height:10px"></div>
+        <div id="compare-picker-list" class="progress-list"></div>
+
+        <div style="height:10px"></div>
+        <div class="form-actions">
+          <button type="button" id="compare-clear" class="btn-danger full-width">Limpar seleção</button>
+          <button type="button" id="compare-apply" class="btn-primary full-width">Comparar</button>
+        </div>
+      </section>
+
+      <div class="section-title">Comparação</div>
+
+      <!-- Aqui vai aparecer o layout por linhas: badge + 3 fotos (Frente/Lado/Costas) -->
+      <div id="compare-grid" class="compare-grid"></div>
+    </div>
   </div>
 
   <!-- ================== MODAL: DIA ================== -->
@@ -259,7 +298,52 @@
 
         <textarea id="notes" rows="4" placeholder="Observações"></textarea>
 
-        <div class="form-actions">
+        <!-- ✅ NOVO: Fotos do Progresso (3 fixas) -->
+        <section class="card" style="margin:0;">
+          <div class="card-title">Fotos (opcional)</div>
+          <div style="color:#6b7280;font-size:13px;line-height:18px;margin-bottom:10px;">
+            Até <b>3 fotos</b> por registo, por ordem fixa: <b>Frente</b>, <b>Lado</b>, <b>Costas</b>.
+            Podes adicionar agora ou mais tarde ao editar o registo.
+          </div>
+
+          <div class="progress-photos" id="progress-photos">
+            <!-- Frente -->
+            <div class="progress-photo-slot" data-slot="front">
+              <div class="progress-photo-label">Frente</div>
+              <input type="file" id="progress-photo-front" accept="image/*" />
+              <div class="progress-photo-preview">
+                <img id="progress-photo-front-preview" alt="Pré-visualização Frente" style="display:none;" />
+              </div>
+            </div>
+
+            <!-- Lado -->
+            <div class="progress-photo-slot" data-slot="side">
+              <div class="progress-photo-label">Lado</div>
+              <input type="file" id="progress-photo-side" accept="image/*" />
+              <div class="progress-photo-preview">
+                <img id="progress-photo-side-preview" alt="Pré-visualização Lado" style="display:none;" />
+              </div>
+            </div>
+
+            <!-- Costas -->
+            <div class="progress-photo-slot" data-slot="back">
+              <div class="progress-photo-label">Costas</div>
+              <input type="file" id="progress-photo-back" accept="image/*" />
+              <div class="progress-photo-preview">
+                <img id="progress-photo-back-preview" alt="Pré-visualização Costas" style="display:none;" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Ações de troca (UI preparada; JS depois) -->
+          <div class="progress-photo-actions" style="margin-top:10px; display:flex; gap:10px;">
+            <button type="button" id="swap-front" class="btn-primary full-width" aria-label="Trocar foto da frente">Trocar Frente</button>
+            <button type="button" id="swap-side" class="btn-primary full-width" aria-label="Trocar foto de lado">Trocar Lado</button>
+            <button type="button" id="swap-back" class="btn-primary full-width" aria-label="Trocar foto de costas">Trocar Costas</button>
+          </div>
+        </section>
+
+        <div class="form-actions" style="margin-top:10px;">
           <button type="submit" class="btn-primary full-width">Guardar</button>
           <button type="button" id="cancel-btn" class="btn-danger full-width">Cancelar</button>
         </div>
@@ -388,4 +472,4 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="script.js"></script>
 </body>
-</html>
+  </html>
