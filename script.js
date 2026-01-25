@@ -1592,8 +1592,21 @@ bindProgressPhotoPreview('#progress-photo-back',  '#progress-photo-back-preview'
 if (qs('#add-record-btn')) {
   qs('#add-record-btn').onclick = () => {
     editingProgressId = null;
+
     qs('#modal-progress-title').textContent = 'Novo Registo';
     qs('#progress-form')?.reset?.();
+
+    // ✅ limpar previews
+    ['front', 'side', 'back'].forEach(pos => {
+      const img = qs(`#progress-photo-${pos}-preview`);
+      if (img) {
+        img.src = '';
+        img.style.display = 'none';
+      }
+      const input = qs(`#progress-photo-${pos}`);
+      if (input) input.value = '';
+    });
+
     openModal(modalProgress);
   };
 }
@@ -1632,13 +1645,12 @@ if (qs('#progress-form')) {
       date: qs('#date').value,
       weight: parseFloat(qs('#weight').value),
       notes: qs('#notes').value,
-      photos: { front: null, side: null, back: null } // ✅ novo;
-
+      
       // ✅ NOVO: 3 refs fixas no registo de progresso
       photos: {
         front: await savePhoto(fFront),
         side:  await savePhoto(fSide),
-        back:  await savePhoto(fBack),
+        back:  await savePhoto(fBack)
       }
     };
 
@@ -1704,12 +1716,42 @@ function renderProgress() {
     editBtn.className = 'edit-btn';
     editBtn.textContent = '✏️';
     editBtn.title = 'Editar';
-    editBtn.onclick = () => {
+    editBtn.onclick = async () => {
       editingProgressId = r.id;
       qs('#date').value = r.date || '';
       qs('#weight').value = (r.weight ?? '');
       qs('#notes').value = r.notes || '';
       qs('#modal-progress-title').textContent = 'Editar Registo';
+      
+      // ✅ limpar inputs (para não ficarem ficheiros anteriores)
+      ['front', 'side', 'back'].forEach(pos => {
+        const input = qs(`#progress-photo-${pos}`);
+        if (input) input.value = '';
+      });
+      
+      // ✅ mostrar previews das fotos já guardadas (se existirem)
+      const photos = r.photos || {};
+      for (const pos of ['front', 'side', 'back']) {
+        const img = qs(`#progress-photo-${pos}-preview`);
+        if (!img) continue;
+        
+        const ref = photos[pos];
+        if (!ref) {
+          img.src = '';
+          img.style.display = 'none';
+          continue;
+        }
+        
+        const url = await getMediaObjectURL(ref);
+        if (url) {
+          img.src = url;
+          img.style.display = 'block';
+        } else {
+          img.src = '';
+          img.style.display = 'none';
+        }
+      }
+      
       openModal(modalProgress);
     };
 
