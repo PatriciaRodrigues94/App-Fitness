@@ -2469,8 +2469,25 @@ if (impAddBtn) impAddBtn.onclick = async () => {
 ========================================================= */
 function collectUsedMediaIds() {
   const used = new Set();
-  loadExercises().forEach(ex => (ex.media || []).forEach(m => { if (m?.ref) used.add(m.ref); }));
-  loadMeals().forEach(meal => (meal.media || []).forEach(m => { if (m?.ref) used.add(m.ref); }));
+
+  // Treino
+  loadExercises().forEach(ex => (ex.media || []).forEach(m => {
+    if (m?.ref) used.add(m.ref);
+  }));
+
+  // Alimentação
+  loadMeals().forEach(meal => (meal.media || []).forEach(m => {
+    if (m?.ref) used.add(m.ref);
+  }));
+
+  // Progresso (Frente/Lado/Costas)
+  loadProgress().forEach(r => {
+    const p = r?.photos || {};
+    if (p.front) used.add(p.front);
+    if (p.side)  used.add(p.side);
+    if (p.back)  used.add(p.back);
+  });
+
   return used;
 }
 
