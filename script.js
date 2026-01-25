@@ -1566,6 +1566,29 @@ tabCompare?.addEventListener('click', () => setProgressTab('compare'));
 let chart = null;
 let editingProgressId = null;
 
+/* ✅ PROGRESSO: Preview das 3 fotos (Frente/Lado/Costas) */
+function bindProgressPhotoPreview(inputSel, imgSel) {
+  const input = qs(inputSel);
+  const img = qs(imgSel);
+  if (!input || !img) return;
+
+  input.addEventListener('change', () => {
+    const file = input.files?.[0];
+    if (!file) {
+      img.style.display = 'none';
+      img.src = '';
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    img.src = url;
+    img.style.display = 'block';
+  });
+}
+
+bindProgressPhotoPreview('#progress-photo-front', '#progress-photo-front-preview');
+bindProgressPhotoPreview('#progress-photo-side',  '#progress-photo-side-preview');
+bindProgressPhotoPreview('#progress-photo-back',  '#progress-photo-back-preview');
+
 if (qs('#add-record-btn')) {
   qs('#add-record-btn').onclick = () => {
     editingProgressId = null;
@@ -1583,28 +1606,73 @@ if (qs('#cancel-btn')) {
 }
 
 if (qs('#progress-form')) {
-  qs('#progress-form').onsubmit = e => {
+  qs('#progress-form').onsubmit = async (e) => {
     e.preventDefault();
     const data = loadProgress();
 
+    // ler fotos (se existirem)
+    const fFront = qs('#progress-photo-front')?.files?.[0] || null;
+    const fSide  = qs('#progress-photo-side')?.files?.[0]  || null;
+    const fBack  = qs('#progress-photo-back')?.files?.[0]  || null;
+
+    // helper para guardar 1 foto (com compressão) e devolver ref
+    async function savePhoto(file) {
+      if (!file) return null;
+      try {
+        const blob = await compressImageToBlob(file, { maxSize: 1280, quality: 0.72 });
+        const ref  = await mediaAddBlob({ type: 'image/jpeg', blob });
+        return ref;
+      } catch (err) {
+        console.error(err);
+        alert('Não foi possível processar uma das fotos.');
+        return null;
+      }
+    }
     const payload = {
       date: qs('#date').value,
       weight: parseFloat(qs('#weight').value),
-      notes: qs('#notes').value
+      notes: qs('#notes').value,
+      photos: { front: null, side: null, back: null } // ✅ novo;
+
+      // ✅ NOVO: 3 refs fixas no registo de progresso
+      photos: {
+        front: await savePhoto(fFront),
+        side:  await savePhoto(fSide),
+        back:  await savePhoto(fBack),
+      }
     };
 
     if (editingProgressId) {
       const idx = data.findIndex(x => x.id === editingProgressId);
-      if (idx !== -1) data[idx] = { ...data[idx], ...payload };
+      if (idx !== -1) {
+        // se estava a editar: mantém fotos antigas se não escolher novas
+        const old = data[idx]?.photos || {};
+        data[idx] = {
+          ...data[idx],
+          ...payload,
+          photos: {
+            front: payload.photos.front || old.front || null,
+            side:  payload.photos.side  || old.side  || null,
+            back:  payload.photos.back  || old.back  || null
+          }
+        };
+      }
     } else {
       data.push({ id: uid(), ...payload });
     }
 
     saveProgress(data);
     editingProgressId = null;
+
+    // limpar inputs
     e.target.reset();
     closeModal(modalProgress);
     renderProgress();
+
+    // esconder previews (se já estiverem a ser usados)
+    qs('#progress-photo-front-preview')?.style && (qs('#progress-photo-front-preview').style.display = 'none');
+    qs('#progress-photo-side-preview')?.style && (qs('#progress-photo-side-preview').style.display = 'none');
+    qs('#progress-photo-back-preview')?.style && (qs('#progress-photo-back-preview').style.display = 'none');
   };
 }
 
