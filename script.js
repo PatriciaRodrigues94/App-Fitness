@@ -1531,6 +1531,36 @@ async function openMealMediaLightbox(title, mediaLocalId) {
 }
 
 /* =========================================================
+   ✅ PROGRESSO — TABS (Registos / Comparar)
+========================================================= */
+const tabRecords = qs('#tab-progress-records');
+const tabCompare = qs('#tab-progress-compare');
+const panelRecords = qs('#progress-panel-records');
+const panelCompare = qs('#progress-panel-compare');
+
+function setProgressTab(name) {
+  const isRecords = name === 'records';
+
+  tabRecords?.classList.toggle('active', isRecords);
+  tabCompare?.classList.toggle('active', !isRecords);
+
+  tabRecords?.setAttribute('aria-selected', isRecords ? 'true' : 'false');
+  tabCompare?.setAttribute('aria-selected', !isRecords ? 'true' : 'false');
+
+  panelRecords?.classList.toggle('active', isRecords);
+  panelCompare?.classList.toggle('active', !isRecords);
+
+  // quando abre "Comparar", refresca lista + grid
+  if (!isRecords) {
+    renderComparePicker();
+    renderCompareGrid();
+  }
+}
+
+tabRecords?.addEventListener('click', () => setProgressTab('records'));
+tabCompare?.addEventListener('click', () => setProgressTab('compare'));
+  
+/* =========================================================
    PROGRESSO
 ========================================================= */
 let chart = null;
