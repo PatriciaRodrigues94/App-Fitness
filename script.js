@@ -1559,7 +1559,192 @@ function setProgressTab(name) {
 
 tabRecords?.addEventListener('click', () => setProgressTab('records'));
 tabCompare?.addEventListener('click', () => setProgressTab('compare'));
-  
+
+/* =========================================================
+   ✅ PROGRESSO — COMPARAR FOTOS (picker + grid)
+========================================================= */
+const comparePickerList = qs('#compare-picker-list');
+const compareGrid = qs('#compare-grid');
+const compareApplyBtn = qs('#compare-apply');
+const compareClearBtn = qs('#compare-clear');
+
+// guarda ids selecionados
+let compareSelectedIds = new Set();
+
+function fmtKg(w) {
+  const n = Number(w);
+  if (Number.isFinite(n)) return `${n.toFixed(1)} kg`;
+  return '';
+}
+
+function getSortedProgressDesc() {
+  const data = loadProgress();
+  return [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+function hasAnyProgressPhotos(r) {
+  const p = r?.photos || {};
+  return !!(p.front || p.side || p.back);
+}
+
+function renderComparePicker() {
+  if (!comparePickerList) return;
+
+  const data = getSortedProgressDesc();
+
+  comparePickerList.innerHTML = '';
+
+  // se não há registos
+  if (!data.length) {
+    const empty = document.createElement('div');
+    empty.className = 'card';
+    empty.innerHTML = `<div class="card-title">Sem registos</div>
+      <div style="color:#6b7280;font-size:13px;">Cria registos no separador “Registos”.</div>`;
+    comparePickerList.appendChild(empty);
+    return;
+  }
+
+  // limpar seleções que já não existam
+  const existingIds = new Set(data.map(r => r.id));
+  compareSelectedIds = new Set([...compareSelectedIds].filter(id => existingIds.has(id)));
+
+  data.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'list-card';
+
+    const left = document.createElement('div');
+    left.className = 'list-left';
+
+    const check = document.createElement('input');
+    check.type = 'checkbox';
+    check.className = 'small-check';
+    check.checked = compareSelectedIds.has(r.id);
+
+    check.onclick = ev => ev.stopPropagation();
+    check.onchange = () => {
+      if (check.checked) compareSelectedIds.add(r.id);
+      else compareSelectedIds.delete(r.id);
+    };
+
+    const text = document.createElement('div');
+    const hasPhotos = hasAnyProgressPhotos(r);
+    text.innerHTML = `
+      <div class="list-title">${r.date || '—'}${r.weight != null ? ` • ${fmtKg(r.weight)}` : ''}</div>
+      <div class="list-sub">${hasPhotos ? '✅ tem fotos (Frente/Lado/Costas)' : '— sem fotos'}</div>
+    `;
+
+    left.append(check, text);
+    card.append(left);
+
+    // clicar na linha também alterna
+    card.onclick = () => {
+      check.checked = !check.checked;
+      check.dispatchEvent(new Event('change'));
+    };
+
+    comparePickerList.appendChild(card);
+  });
+}
+
+async function renderCompareGrid() {
+  if (!compareGrid) return;
+
+  const data = getSortedProgressDesc();
+  const selected = data.filter(r => compareSelectedIds.has(r.id));
+
+  compareGrid.innerHTML = '';
+
+  if (selected.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'card';
+    empty.innerHTML = `<div class="card-title">Nada selecionado</div>
+      <div style="color:#6b7280;font-size:13px;">Seleciona registos acima e carrega em “Comparar”.</div>`;
+    compareGrid.appendChild(empty);
+    return;
+  }
+
+  // cria as linhas por registo
+  for (const r of selected) {
+    const row = document.createElement('div');
+    row.className = 'compare-row';
+
+    const badge = document.createElement('div');
+    badge.className = 'compare-badge';
+    badge.textContent = `${r.date || '—'}${r.weight != null ? ` • ${fmtKg(r.weight)}` : ''}`;
+
+    const photosWrap = document.createElement('div');
+    photosWrap.className = 'compare-photos';
+
+    // 3 slots fixos: front/side/back
+    const positions = [
+      { key: 'front', label: 'Frente' },
+      { key: 'side',  label: 'Lado' },
+      { key: 'back',  label: 'Costas' }
+    ];
+
+    for (const pos of positions) {
+      const cell = document.createElement('div');
+      cell.className = 'compare-photo';
+
+      const ref = r?.photos?.[pos.key] || null;
+      if (!ref) {
+        // placeholder simples
+        const ph = document.createElement('div');
+        ph.style.width = '100%';
+        ph.style.height = '100%';
+        ph.style.display = 'grid';
+        ph.style.placeItems = 'center';
+        ph.style.color = '#6b7280';
+        ph.style.fontSize = '12px';
+        ph.style.fontWeight = '800';
+        ph.textContent = pos.label;
+        cell.appendChild(ph);
+      } else {
+        try {
+          const url = await getMediaObjectURL(ref);
+          if (url) {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = `${pos.label} — ${r.date || ''}`;
+            cell.appendChild(img);
+
+            // click abre no lightbox (simples: só esta imagem)
+            img.onclick = () => {
+              lb.title = `Progresso • ${r.date || ''}`;
+              lb.items = [{ id: `${r.id}-${pos.key}`, type: 'image/jpeg', src: url, notes: '' }];
+              lb.index = 0;
+              lb.saveNotes = null;
+              lbShow();
+            };
+          }
+        } catch (e) {
+          // se falhar, deixa placeholder
+        }
+      }
+
+      photosWrap.appendChild(cell);
+    }
+
+    row.append(badge, photosWrap);
+    compareGrid.appendChild(row);
+  }
+}
+
+if (compareApplyBtn) {
+  compareApplyBtn.onclick = () => {
+    // só desenha o grid com o que já está selecionado
+    renderCompareGrid();
+  };
+}
+
+if (compareClearBtn) {
+  compareClearBtn.onclick = () => {
+    compareSelectedIds.clear();
+    renderComparePicker();
+    renderCompareGrid();
+  };
+}
+
 /* =========================================================
    PROGRESSO
 ========================================================= */
