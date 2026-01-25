@@ -746,3 +746,180 @@ button:active{ transform:scale(0.97); }
   border: none !important;
   border-radius: 0;
 }
+
+/* =========================================================
+   ✅ NOVO: PROGRESSO — TABS + FOTOS (3 posições) + COMPARAR
+   (Só estilos novos; não altera nada do que já existia)
+========================================================= */
+
+/* Tabs */
+.progress-tabs{
+  width:100%;
+  max-width:420px;
+  display:flex;
+  gap:10px;
+  margin: 6px 0 10px;
+}
+
+.progress-tab{
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color:#111827;
+  font-size: 13px;
+  font-weight: 800;
+  text-align:center;
+}
+
+.progress-tab:active{ transform: none; }
+
+.progress-tab.active{
+  background: #111827;
+  color:#ffffff;
+  border-color:#111827;
+}
+
+/* Painéis dos tabs */
+.progress-panel{
+  width:100%;
+  max-width:420px;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+}
+.progress-panel.active{
+  display:flex;
+}
+
+/* Modal progresso: bloco de 3 fotos */
+.progress-photos{
+  width:100%;
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:10px;
+}
+
+.progress-photo-slot{
+  background:#ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding:10px;
+  text-align:left;
+}
+
+.progress-photo-label{
+  font-size: 12px;
+  font-weight: 800;
+  color:#111827;
+  margin-bottom: 8px;
+}
+
+.progress-photo-slot input[type="file"]{
+  width:100%;
+  padding:8px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  background:#f9fafb;
+  margin-bottom:8px;
+  font-size: 12px;
+}
+
+.progress-photo-preview{
+  width:100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background:#f3f4f6;
+  border: 1px dashed #e5e7eb;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.progress-photo-preview img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius: 10px;
+  display:block;
+}
+
+/* botões de troca (já herdam btn-primary; aqui só ajustamos layout no modal) */
+.progress-photo-actions button{
+  padding: 12px !important;
+  font-size: 13px !important;
+}
+
+/* Comparar: container geral */
+.compare-grid{
+  width:100%;
+  max-width:420px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-bottom: 14px;
+}
+
+/* (O JS vai criar cada linha. Estes estilos já deixam preparado o layout por 3 colunas.)
+   Estrutura sugerida para cada linha:
+   <div class="compare-row">
+     <div class="compare-badge">2026-01-01 • 70.2 kg</div>
+     <div class="compare-photos">
+       <div class="compare-photo"><img ...></div> x3
+     </div>
+   </div>
+*/
+.compare-row{
+  width:100%;
+  border-radius:14px;
+  overflow:hidden;
+  border: 1px solid #e5e7eb;
+  background:#ffffff;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  position:relative;
+}
+
+.compare-badge{
+  position:absolute;
+  top:8px;
+  left:8px;
+  background: rgba(17,24,39,0.55);
+  color:#ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 8px;
+  border-radius: 10px;
+  backdrop-filter: blur(2px);
+  z-index: 2;
+}
+
+.compare-photos{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:2px;
+  background:#e5e7eb;
+}
+
+.compare-photo{
+  background:#f3f4f6;
+  aspect-ratio: 1 / 1;
+  overflow:hidden;
+}
+
+.compare-photo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* mobile: se o ecrã for muito estreito, mantém 3 colunas mas baixa um pouco o padding */
+@media (max-width: 360px){
+  .progress-tab{ font-size: 12px; padding: 9px 10px !important; }
+  .progress-photos{ gap:8px; }
+  .progress-photo-slot{ padding:9px; }
+}
