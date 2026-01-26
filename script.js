@@ -2350,6 +2350,20 @@ function remapMediaRefsInTrainAndFood(data, mediaIdMap) {
   }));
 }
 
+function remapMediaRefsInProgress(data, mediaIdMap) {
+  if (!mediaIdMap || !(mediaIdMap instanceof Map) || mediaIdMap.size === 0) return;
+
+  (data?.progress?.records || []).forEach(r => {
+    const p = r?.photos;
+    if (!p) return;
+
+    for (const k of ['front', 'side', 'back']) {
+      const ref = p[k];
+      if (ref && mediaIdMap.has(ref)) p[k] = mediaIdMap.get(ref);
+    }
+  });
+}
+
 /* ---- Converter media inline (src base64) -> refs IDB ---- */
 async function convertInlineSrcMediaToRefs_INCOMING_IDB(data, { idMapFromStore = null } = {}) {
   if (!data || typeof data !== 'object') return;
@@ -2416,6 +2430,7 @@ async function applyAdd(scope, data) {
   if (data?.media?.store) {
     mediaIdMap = await mergeMediaStoreAdd_IDB(data.media.store);
     remapMediaRefsInTrainAndFood(data, mediaIdMap);
+    remapMediaRefsInProgress(data, mediaIdMap);
   }
 
   await convertInlineSrcMediaToRefs_INCOMING_IDB(data, { idMapFromStore: mediaIdMap });
