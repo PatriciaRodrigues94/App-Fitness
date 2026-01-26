@@ -1774,6 +1774,19 @@ bindProgressPhotoPreview('#progress-photo-front', '#progress-photo-front-preview
 bindProgressPhotoPreview('#progress-photo-side',  '#progress-photo-side-preview');
 bindProgressPhotoPreview('#progress-photo-back',  '#progress-photo-back-preview');
 
+// ✅ Trocar fotos (abre o seletor do input correspondente)
+function bindSwapButton(btnSel, inputSel) {
+  const btn = qs(btnSel);
+  const input = qs(inputSel);
+  if (!btn || !input) return;
+
+  btn.addEventListener('click', () => input.click());
+}
+
+bindSwapButton('#swap-front', '#progress-photo-front');
+bindSwapButton('#swap-side',  '#progress-photo-side');
+bindSwapButton('#swap-back',  '#progress-photo-back');
+
 if (qs('#add-record-btn')) {
   qs('#add-record-btn').onclick = () => {
     editingProgressId = null;
@@ -1842,8 +1855,21 @@ if (qs('#progress-form')) {
     if (editingProgressId) {
       const idx = data.findIndex(x => x.id === editingProgressId);
       if (idx !== -1) {
-        // se estava a editar: mantém fotos antigas se não escolher novas
         const old = data[idx]?.photos || {};
+        
+        // ✅ se escolheu nova foto, apagar a anterior (evita lixo no IDB)
+        for (const k of ['front', 'side', 'back']) {
+          const newRef = payload.photos[k];
+          const oldRef = old[k];
+          
+          if (newRef && oldRef && newRef !== oldRef) {
+            try {
+              await mediaDelete(oldRef);
+              revokeMediaObjectURL(oldRef);
+            } catch {}
+          }
+        }
+        
         data[idx] = {
           ...data[idx],
           ...payload,
@@ -1857,7 +1883,7 @@ if (qs('#progress-form')) {
     } else {
       data.push({ id: uid(), ...payload });
     }
-
+    
     saveProgress(data);
     editingProgressId = null;
 
@@ -1944,14 +1970,35 @@ function renderProgress() {
     delBtn.className = 'remove-btn';
     delBtn.textContent = '×';
     delBtn.title = 'Eliminar';
-    delBtn.onclick = () => {
+    delBtn.onclick = async () => {
+      const ok = confirm('Eliminar este registo?');
+      if (!ok) return;
+      
       const fresh = loadProgress();
       const idx = fresh.findIndex(x => x.id === r.id);
-      if (idx !== -1) {
-        fresh.splice(idx, 1);
-        saveProgress(fresh);
-        renderProgress();
+      if (idx === -1) return;
+      
+      // ✅ apagar fotos associadas ao registo (se existirem)
+      const photos = fresh[idx]?.photos || {};
+      for (const k of ['front', 'side', 'back']) {
+        const ref = photos[k];
+        if (ref) {
+          try {
+            await mediaDelete(ref);
+            revokeMediaObjectURL(ref);
+          } catch {}
+        }
       }
+      
+      // remover registo
+      fresh.splice(idx, 1);
+      saveProgress(fresh);
+      
+      renderProgress();
+      
+      // se estiver no separador comparar, refresca também
+      renderComparePicker();
+      renderCompareGrid();
     };
 
     actions.append(editBtn, delBtn);
