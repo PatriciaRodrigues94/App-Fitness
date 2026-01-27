@@ -82,7 +82,7 @@ button:active{ transform:scale(0.97); }
   display:none;
   justify-content:center;
   align-items:center;
-  z-index:100;
+  z-index:9999;
 }
 
 .lightbox-content{
@@ -983,5 +983,6 @@ button:active{ transform:scale(0.97); }
   .progress-photos{ gap:8px; }
   .progress-photo-slot{ padding:9px; }
 }
+
 
 
