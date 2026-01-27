@@ -1969,11 +1969,15 @@ if (qs('#progress-form')) {
     e.target.reset();
     closeModal(modalProgress);
     renderProgress();
-
-    // esconder previews (se já estiverem a ser usados)
-    qs('#progress-photo-front-preview')?.style && (qs('#progress-photo-front-preview').style.display = 'none');
-    qs('#progress-photo-side-preview')?.style && (qs('#progress-photo-side-preview').style.display = 'none');
-    qs('#progress-photo-back-preview')?.style && (qs('#progress-photo-back-preview').style.display = 'none');
+    
+    // ✅ limpar previews (mantém o CSS consistente com o botão ×)
+    ['front', 'side', 'back'].forEach(pos => {
+      const img = qs(`#progress-photo-${pos}-preview`);
+      if (img) {
+        img.src = '';
+        img.classList.remove('is-visible');
+      }
+    });
   };
 }
 
@@ -2019,28 +2023,27 @@ function renderProgress() {
       });
       
       // ✅ mostrar previews das fotos já guardadas (se existirem)
+      // (IMPORTANTE: usar a classe .is-visible, porque é isso que faz aparecer o botão × no CSS)
       const photos = r.photos || {};
       for (const pos of ['front', 'side', 'back']) {
         const img = qs(`#progress-photo-${pos}-preview`);
         if (!img) continue;
         
         const ref = photos[pos];
-        if (!ref) {
-          img.src = '';
-          img.style.display = 'none';
-          continue;
-        }
+        
+        // limpar primeiro
+        img.src = '';
+        img.classList.remove('is-visible');
+        
+        if (!ref) continue;
         
         const url = await getMediaObjectURL(ref);
         if (url) {
           img.src = url;
-          img.style.display = 'block';
-        } else {
-          img.src = '';
-          img.style.display = 'none';
+          img.classList.add('is-visible');
         }
       }
-      
+           
       openModal(modalProgress);
     };
 
