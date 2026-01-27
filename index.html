@@ -170,7 +170,7 @@
       </button>
     </div>
 
-    <!-- ✅ Painel 1: Registos (como já tinhas) -->
+    <!-- ✅ Painel 1: Registos -->
     <div id="progress-panel-records" class="progress-panel active" role="tabpanel" aria-labelledby="tab-progress-records">
       <section class="card">
         <div class="card-title">Gráfico de Progresso</div>
@@ -201,7 +201,7 @@
       <div id="progress-list" class="progress-list"></div>
     </div>
 
-    <!-- ✅ Painel 2: Comparar fotos (novo) -->
+    <!-- ✅ Painel 2: Comparar fotos -->
     <div id="progress-panel-compare" class="progress-panel" role="tabpanel" aria-labelledby="tab-progress-compare">
       <section class="card">
         <div class="card-title">Selecionar registos</div>
@@ -210,7 +210,6 @@
           <b>Frente</b>, <b>Lado</b>, <b>Costas</b>.
         </div>
 
-        <!-- Lista de seleção (o JS vai preencher com checkboxes) -->
         <div style="height:10px"></div>
         <div id="compare-picker-list" class="progress-list"></div>
 
@@ -222,8 +221,6 @@
       </section>
 
       <div class="section-title">Comparação</div>
-
-      <!-- Aqui vai aparecer o layout por linhas: badge + 3 fotos (Frente/Lado/Costas) -->
       <div id="compare-grid" class="compare-grid"></div>
     </div>
   </div>
@@ -313,6 +310,8 @@
               <input type="file" id="progress-photo-front" accept="image/*" />
               <div class="progress-photo-preview">
                 <img id="progress-photo-front-preview" alt="Pré-visualização Frente" style="display:none;" />
+                <!-- ✅ NOVO: botão eliminar -->
+                <button type="button" class="progress-photo-remove" data-pos="front" aria-label="Eliminar foto da frente">×</button>
               </div>
             </div>
 
@@ -322,6 +321,8 @@
               <input type="file" id="progress-photo-side" accept="image/*" />
               <div class="progress-photo-preview">
                 <img id="progress-photo-side-preview" alt="Pré-visualização Lado" style="display:none;" />
+                <!-- ✅ NOVO: botão eliminar -->
+                <button type="button" class="progress-photo-remove" data-pos="side" aria-label="Eliminar foto de lado">×</button>
               </div>
             </div>
 
@@ -331,11 +332,13 @@
               <input type="file" id="progress-photo-back" accept="image/*" />
               <div class="progress-photo-preview">
                 <img id="progress-photo-back-preview" alt="Pré-visualização Costas" style="display:none;" />
+                <!-- ✅ NOVO: botão eliminar -->
+                <button type="button" class="progress-photo-remove" data-pos="back" aria-label="Eliminar foto de costas">×</button>
               </div>
             </div>
           </div>
 
-          <!-- Ações de troca (UI preparada; JS depois) -->
+          <!-- Ações de troca -->
           <div class="progress-photo-actions" style="margin-top:10px; display:flex; gap:10px;">
             <button type="button" id="swap-front" class="btn-primary full-width" aria-label="Trocar foto da frente">Trocar Frente</button>
             <button type="button" id="swap-side" class="btn-primary full-width" aria-label="Trocar foto de lado">Trocar Lado</button>
@@ -370,10 +373,7 @@
   <div id="more-menu" class="more-menu" aria-hidden="true">
     <button type="button" class="more-item" id="open-export">Exportar</button>
     <button type="button" class="more-item" id="open-import">Importar</button>
-
-    <!-- ✅ NOVO (mínimo necessário para o teu JS atual) -->
     <button type="button" class="more-item" id="open-clean">Limpeza</button>
-
     <button type="button" class="more-item" id="close-more">Fechar</button>
   </div>
 
@@ -406,7 +406,7 @@
         <button type="button" class="modal-close" id="close-import-modal">×</button>
       </div>
 
-      <!-- STEP 1: escolher categoria -->
+      <!-- STEP 1 -->
       <div id="import-step-1">
         <p class="modal-sub">Escolhe o que queres importar.</p>
         <div class="menu-list">
@@ -418,7 +418,7 @@
         <button type="button" class="back-inline" id="back-import-1">← Voltar</button>
       </div>
 
-      <!-- STEP 2: escolher ficheiro -->
+      <!-- STEP 2 -->
       <div id="import-step-2" style="display:none;">
         <p class="modal-sub">Escolhe o ficheiro .json para importar.</p>
 
@@ -429,7 +429,7 @@
         <button type="button" class="back-inline" id="back-import-2">← Voltar</button>
       </div>
 
-      <!-- STEP 3: modo (substituir/adicionar) -->
+      <!-- STEP 3 -->
       <div id="import-step-3" style="display:none;">
         <p class="modal-sub">
           Queres <strong>Substituir</strong> o que existe (apaga e mete o do ficheiro)
@@ -446,7 +446,7 @@
     </div>
   </div>
 
-  <!-- ================== MODAL: LIMPEZA (NOVO - mínimo necessário) ================== -->
+  <!-- ================== MODAL: LIMPEZA ================== -->
   <div id="modal-clean" class="modal">
     <div class="modal-card">
       <div class="modal-head">
@@ -458,7 +458,6 @@
         Remove fotos/vídeos guardados que já não estão usados em nenhum exercício/refeição.
       </p>
 
-      <!-- o JS escreve aqui o estado -->
       <div id="clean-info" class="card" style="margin:0;"></div>
 
       <div class="menu-list">
@@ -472,4 +471,4 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="script.js"></script>
 </body>
-  </html>
+</html>
