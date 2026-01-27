@@ -450,12 +450,21 @@ button:active{ transform:scale(0.97); }
   transform: scale(0.97);
 }
 
-/* Mostrar o botão só quando há imagem visível */
-.progress-photo-preview img[style*="display:none"] + .progress-photo-remove{
+/* botão aparece quando o IMG está visível */
+.progress-photo-preview img{
   display: none;
 }
-.progress-photo-preview img:not([style*="display:none"]) + .progress-photo-remove{
-  display: flex;
+
+.progress-photo-preview img.is-visible{
+  display:block;
+}
+
+.progress-photo-preview .progress-photo-remove{
+  display:none;
+}
+
+.progress-photo-preview img.is-visible + .progress-photo-remove{
+  display:flex;
 }
 
 /* ===================== MODAIS ===================== */
@@ -897,7 +906,6 @@ button:active{ transform:scale(0.97); }
   height:100%;
   object-fit:cover;
   border-radius: 10px;
-  display:block;
 }
 
 /* botões de troca (já herdam btn-primary; aqui só ajustamos layout no modal) */
@@ -975,4 +983,5 @@ button:active{ transform:scale(0.97); }
   .progress-photos{ gap:8px; }
   .progress-photo-slot{ padding:9px; }
 }
+
 
