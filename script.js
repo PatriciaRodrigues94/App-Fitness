@@ -1768,21 +1768,20 @@ function bindProgressPhotoPreview(inputSel, imgSel) {
   input.addEventListener('change', () => {
     const file = input.files?.[0];
 
-    // limpa url anterior (evita leak)
     if (lastUrl) {
       try { URL.revokeObjectURL(lastUrl); } catch {}
       lastUrl = null;
     }
 
     if (!file) {
-      img.style.display = 'none';
       img.src = '';
+      img.classList.remove('is-visible');
       return;
     }
 
     lastUrl = URL.createObjectURL(file);
     img.src = lastUrl;
-    img.style.display = 'block';
+    img.classList.add('is-visible');
   });
 }
 
@@ -1813,7 +1812,7 @@ async function removeProgressPhoto(pos) {
   if (input) input.value = '';
   if (img) {
     img.src = '';
-    img.style.display = 'none';
+    img.classList.remove('is-visible');
   }
 
   // 2) Se estivermos a editar um registo existente, também remove do registo + apaga do IDB
@@ -1852,14 +1851,18 @@ async function removeProgressPhoto(pos) {
 }
 
 // bind dos 3 botões ×
-qsa('.progress-photo-remove').forEach(btn => {
-  btn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const pos = btn.dataset.pos; // 'front' | 'side' | 'back'
-    if (!pos) return;
-    await removeProgressPhoto(pos);
-  });
+// ✅ Delegation: funciona mesmo se o DOM ainda não existia quando o script correu
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.progress-photo-remove');
+  if (!btn) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const pos = btn.dataset.pos; // front|side|back
+  if (!pos) return;
+
+  await removeProgressPhoto(pos);
 });
 
 if (qs('#add-record-btn')) {
@@ -1874,7 +1877,7 @@ if (qs('#add-record-btn')) {
       const img = qs(`#progress-photo-${pos}-preview`);
       if (img) {
         img.src = '';
-        img.style.display = 'none';
+        img.classList.remove('is-visible');
       }
       const input = qs(`#progress-photo-${pos}`);
       if (input) input.value = '';
