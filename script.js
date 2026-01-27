@@ -2023,25 +2023,47 @@ function renderProgress() {
       });
       
       // ✅ mostrar previews das fotos já guardadas (se existirem)
+      // ✅ + permitir abrir em grande (lightbox)
       // (IMPORTANTE: usar a classe .is-visible, porque é isso que faz aparecer o botão × no CSS)
       const photos = r.photos || {};
+      
       for (const pos of ['front', 'side', 'back']) {
         const img = qs(`#progress-photo-${pos}-preview`);
         if (!img) continue;
         
-        const ref = photos[pos];
-        
-        // limpar primeiro
+        // reset completo
         img.src = '';
+        img.onclick = null;
         img.classList.remove('is-visible');
+        img.style.display = 'none';
         
+        const ref = photos[pos];
         if (!ref) continue;
         
         const url = await getMediaObjectURL(ref);
-        if (url) {
-          img.src = url;
-          img.classList.add('is-visible');
-        }
+        if (!url) continue;
+        
+        // mostrar preview
+        img.src = url;
+        img.classList.add('is-visible');
+        img.style.display = 'block';
+        
+        // ✅ abrir em grande (Android-friendly)
+        img.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          lb.title = `Progresso • ${r.date || ''}`;
+          lb.items = [{
+            id: `${r.id}-${pos}`,
+            type: 'image/jpeg',
+            src: url,
+            notes: ''
+          }];
+          lb.index = 0;
+          lb.saveNotes = null;
+          lbShow();
+        };
       }
            
       openModal(modalProgress);
