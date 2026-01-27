@@ -406,6 +406,58 @@ button:active{ transform:scale(0.97); }
   border-radius:12px;
 }
 
+/* =========================================================
+   ✅ Progresso (modal) — botão "×" para eliminar foto (3 slots)
+========================================================= */
+
+/* Garantir que o preview pode ter elementos posicionados por cima */
+.progress-photo-preview{
+  position: relative;
+}
+
+/* Botão de remover (×) */
+.progress-photo-remove{
+  position: absolute;
+  top: 6px;
+  right: 6px;
+
+  width: 22px !important;
+  height: 22px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+
+  border: none !important;
+  border-radius: 8px;
+
+  background: rgba(239,68,68,0.12);
+  color: #ef4444;
+
+  font-size: 14px;
+  line-height: 1;
+
+  display: none;              /* por defeito escondido */
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+}
+
+.progress-photo-remove:hover{
+  background: rgba(239,68,68,0.18);
+}
+
+.progress-photo-remove:active{
+  transform: scale(0.97);
+}
+
+/* Mostrar o botão só quando há imagem visível */
+.progress-photo-preview img[style*="display:none"] + .progress-photo-remove{
+  display: none;
+}
+.progress-photo-preview img:not([style*="display:none"]) + .progress-photo-remove{
+  display: flex;
+}
+
 /* ===================== MODAIS ===================== */
 .modal{
   position:fixed;
@@ -923,3 +975,4 @@ button:active{ transform:scale(0.97); }
   .progress-photos{ gap:8px; }
   .progress-photo-slot{ padding:9px; }
 }
+
