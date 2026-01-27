@@ -1763,15 +1763,25 @@ function bindProgressPhotoPreview(inputSel, imgSel) {
   const img = qs(imgSel);
   if (!input || !img) return;
 
+  let lastUrl = null;
+
   input.addEventListener('change', () => {
     const file = input.files?.[0];
+
+    // limpa url anterior (evita leak)
+    if (lastUrl) {
+      try { URL.revokeObjectURL(lastUrl); } catch {}
+      lastUrl = null;
+    }
+
     if (!file) {
       img.style.display = 'none';
       img.src = '';
       return;
     }
-    const url = URL.createObjectURL(file);
-    img.src = url;
+
+    lastUrl = URL.createObjectURL(file);
+    img.src = lastUrl;
     img.style.display = 'block';
   });
 }
@@ -1792,6 +1802,65 @@ function bindSwapButton(btnSel, inputSel) {
 bindSwapButton('#swap-front', '#progress-photo-front');
 bindSwapButton('#swap-side',  '#progress-photo-side');
 bindSwapButton('#swap-back',  '#progress-photo-back');
+
+// ✅ Remover foto (×) — funciona no "Novo Registo" e no "Editar Registo"
+async function removeProgressPhoto(pos) {
+  // pos: 'front' | 'side' | 'back'
+  const input = qs(`#progress-photo-${pos}`);
+  const img   = qs(`#progress-photo-${pos}-preview`);
+
+  // 1) Se existir ficheiro escolhido (ainda não guardado), limpa só o input + preview
+  if (input) input.value = '';
+  if (img) {
+    img.src = '';
+    img.style.display = 'none';
+  }
+
+  // 2) Se estivermos a editar um registo existente, também remove do registo + apaga do IDB
+  if (!editingProgressId) return;
+
+  const data = loadProgress();
+  const idx = data.findIndex(r => r.id === editingProgressId);
+  if (idx === -1) return;
+
+  const photos = data[idx].photos || {};
+  const ref = photos[pos];
+
+  // já está "vazio"
+  if (!ref) {
+    data[idx].photos = { ...photos, [pos]: null };
+    saveProgress(data);
+    renderProgress();
+    renderComparePicker();
+    renderCompareGrid();
+    return;
+  }
+
+  // apaga do IDB + limpa ref no registo
+  try {
+    await mediaDelete(ref);
+    revokeMediaObjectURL(ref);
+  } catch {}
+
+  data[idx].photos = { ...photos, [pos]: null };
+  saveProgress(data);
+
+  // refresca UI
+  renderProgress();
+  renderComparePicker();
+  renderCompareGrid();
+}
+
+// bind dos 3 botões ×
+qsa('.progress-photo-remove').forEach(btn => {
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const pos = btn.dataset.pos; // 'front' | 'side' | 'back'
+    if (!pos) return;
+    await removeProgressPhoto(pos);
+  });
+});
 
 if (qs('#add-record-btn')) {
   qs('#add-record-btn').onclick = () => {
