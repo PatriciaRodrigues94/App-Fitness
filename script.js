@@ -919,7 +919,13 @@ function lbBindMediaClickNext() {
   const img = qs('#lightbox-img');
   const vid = qs('#lightbox-video');
   if (img) img.onclick = () => lbNext();
-  if (vid) vid.onclick = () => lbNext();
+  if (vid) {
+    vid.onclick = (e) => {
+      e.stopPropagation();
+      if (vid.paused) vid.play();
+      else vid.pause();
+    };
+  }
 }
 
 (function lbEnableSwipe(){
