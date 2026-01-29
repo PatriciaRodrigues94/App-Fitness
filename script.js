@@ -681,6 +681,77 @@ const exDone  = qs('#ex-done');
 const exMediaGrid  = qs('#ex-media-grid');
 const exMediaInput = qs('#ex-media-input');
 
+/* ===== HERO (EXERCÍCIO) ===== */
+const exHero = qs('#ex-hero');
+const exHeroImg = qs('#ex-hero-img');
+const exHeroVideo = qs('#ex-hero-video');
+let currentExHeroMediaLocalId = null;
+
+function exHeroClear(){
+  currentExHeroMediaLocalId = null;
+
+  if (exHeroImg) {
+    exHeroImg.style.display = 'none';
+    exHeroImg.src = '';
+  }
+  if (exHeroVideo) {
+    try { exHeroVideo.pause(); } catch {}
+    exHeroVideo.style.display = 'none';
+    exHeroVideo.src = '';
+  }
+
+  if (exHero) exHero.classList.add('is-hidden');
+}
+
+async function exHeroShowByLocalId(mediaLocalId){
+  const ex = getCurrentExercise();
+  if (!ex) return;
+
+  const item = (ex.media || []).find(x => x.id === mediaLocalId);
+  if (!item?.ref) { exHeroClear(); return; }
+
+  const rec = await mediaGetRecord(item.ref);
+  if (!rec?.blob) { exHeroClear(); return; }
+
+  const url = await getMediaObjectURL(item.ref);
+  if (!url) { exHeroClear(); return; }
+
+  currentExHeroMediaLocalId = mediaLocalId;
+
+  if (exHero) exHero.classList.remove('is-hidden');
+
+  if ((rec.type || '').startsWith('image')) {
+    if (exHeroVideo) {
+      try { exHeroVideo.pause(); } catch {}
+      exHeroVideo.style.display = 'none';
+      exHeroVideo.src = '';
+    }
+    if (exHeroImg) {
+      exHeroImg.src = url;
+      exHeroImg.style.display = 'block';
+    }
+  } else {
+    if (exHeroImg) {
+      exHeroImg.style.display = 'none';
+      exHeroImg.src = '';
+    }
+    if (exHeroVideo) {
+      exHeroVideo.src = url;
+      exHeroVideo.style.display = 'block';
+    }
+  }
+}
+
+/* clicar no hero abre lightbox */
+if (exHero) {
+  exHero.addEventListener('click', () => {
+    if (!currentExHeroMediaLocalId) return;
+    const ex = getCurrentExercise();
+    if (!ex) return;
+    openMediaLightbox(ex.name || 'Media', currentExHeroMediaLocalId);
+  });
+}
+
 function getCurrentExercise() {
   const all = loadExercises();
   return all.find(x => x.id === currentExId) || null;
@@ -694,7 +765,7 @@ function saveCurrentExercise(patch) {
   saveExercises(all);
 }
 
-function openExerciseDetail() {
+async function openExerciseDetail() {
   const ex = getCurrentExercise();
   if (!ex) return;
 
@@ -704,6 +775,11 @@ function openExerciseDetail() {
 
   renderExerciseMedia();
   openScreen('screenExercise');
+
+  // ✅ ao entrar, mostrar logo a 1ª foto/vídeo (se existir)
+  const firstId = (ex.media || [])[0]?.id || null;
+  if (firstId) await exHeroShowByLocalId(firstId);
+  else exHeroClear();
 }
 
 if (qs('#back-to-day')) {
@@ -819,7 +895,6 @@ function renderExerciseMedia() {
 
       const url = await getMediaObjectURL(m.ref);
       if (!url) return;
-
       if (!wrap.isConnected) return;
 
       if (wrap.contains(placeholder)) wrap.removeChild(placeholder);
@@ -832,11 +907,14 @@ function renderExerciseMedia() {
         el.playsInline = true;
       }
 
-      el.onclick = () => openMediaLightbox(ex.name || 'Media', m.id);
+      // ✅ clicar na miniatura troca o HERO
+      el.onclick = async () => {
+        await exHeroShowByLocalId(m.id);
+      };
 
       const del = document.createElement('button');
       del.textContent = '×';
-      del.onclick = (ev) => {
+      del.onclick = async (ev) => {
         ev.stopPropagation();
 
         const exNow = getCurrentExercise();
@@ -845,7 +923,19 @@ function renderExerciseMedia() {
         const updated = (exNow.media || []).filter(x => x.id !== m.id);
         saveCurrentExercise({ media: updated });
 
-        // NÃO apagar do IndexedDB aqui (só na limpeza)
+        // ✅ se apagou o que estava no hero, escolher novo hero (ou esconder)
+        if (currentExHeroMediaLocalId === m.id) {
+          const nextId = updated[0]?.id || null;
+          if (nextId) await exHeroShowByLocalId(nextId);
+          else exHeroClear();
+        } else {
+          // se não havia hero e agora ainda há media, manter comportamento normal
+          if (!currentExHeroMediaLocalId) {
+            const firstId = updated[0]?.id || null;
+            if (firstId) await exHeroShowByLocalId(firstId);
+          }
+        }
+
         renderExerciseMedia();
         renderExercises();
         renderDays();
@@ -856,6 +946,9 @@ function renderExerciseMedia() {
 
     exMediaGrid.appendChild(wrap);
   });
+
+  // ✅ se não há media, garantir hero escondido
+  if (!mediaArr.length) exHeroClear();
 }
 
 /* =========================================================
@@ -1331,6 +1424,77 @@ const mealNotesEl = qs('#meal-notes');
 const mealMediaGrid  = qs('#meal-media-grid');
 const mealMediaInput = qs('#meal-media-input');
 
+/* ===== HERO (REFEIÇÃO) ===== */
+const mealHero = qs('#meal-hero');
+const mealHeroImg = qs('#meal-hero-img');
+const mealHeroVideo = qs('#meal-hero-video');
+let currentMealHeroMediaLocalId = null;
+
+function mealHeroClear(){
+  currentMealHeroMediaLocalId = null;
+
+  if (mealHeroImg) {
+    mealHeroImg.style.display = 'none';
+    mealHeroImg.src = '';
+  }
+  if (mealHeroVideo) {
+    try { mealHeroVideo.pause(); } catch {}
+    mealHeroVideo.style.display = 'none';
+    mealHeroVideo.src = '';
+  }
+
+  if (mealHero) mealHero.classList.add('is-hidden');
+}
+
+async function mealHeroShowByLocalId(mediaLocalId){
+  const meal = getCurrentMeal();
+  if (!meal) return;
+
+  const item = (meal.media || []).find(x => x.id === mediaLocalId);
+  if (!item?.ref) { mealHeroClear(); return; }
+
+  const rec = await mediaGetRecord(item.ref);
+  if (!rec?.blob) { mealHeroClear(); return; }
+
+  const url = await getMediaObjectURL(item.ref);
+  if (!url) { mealHeroClear(); return; }
+
+  currentMealHeroMediaLocalId = mediaLocalId;
+
+  if (mealHero) mealHero.classList.remove('is-hidden');
+
+  if ((rec.type || '').startsWith('image')) {
+    if (mealHeroVideo) {
+      try { mealHeroVideo.pause(); } catch {}
+      mealHeroVideo.style.display = 'none';
+      mealHeroVideo.src = '';
+    }
+    if (mealHeroImg) {
+      mealHeroImg.src = url;
+      mealHeroImg.style.display = 'block';
+    }
+  } else {
+    if (mealHeroImg) {
+      mealHeroImg.style.display = 'none';
+      mealHeroImg.src = '';
+    }
+    if (mealHeroVideo) {
+      mealHeroVideo.src = url;
+      mealHeroVideo.style.display = 'block';
+    }
+  }
+}
+
+/* clicar no hero abre lightbox */
+if (mealHero) {
+  mealHero.addEventListener('click', () => {
+    if (!currentMealHeroMediaLocalId) return;
+    const m = getCurrentMeal();
+    if (!m) return;
+    openMealMediaLightbox(m.title || 'Media', currentMealHeroMediaLocalId);
+  });
+}
+
 function getCurrentMeal() {
   const all = loadMeals();
   return all.find(x => x.id === currentMealId) || null;
@@ -1344,7 +1508,7 @@ function saveCurrentMeal(patch) {
   saveMeals(all);
 }
 
-function openMealDetail() {
+async function openMealDetail() {
   const m = getCurrentMeal();
   if (!m) return;
 
@@ -1353,6 +1517,11 @@ function openMealDetail() {
 
   renderMealMedia();
   openScreen('screenMeal');
+
+  // ✅ ao entrar, mostrar logo a 1ª foto/vídeo (se existir)
+  const firstId = (m.media || [])[0]?.id || null;
+  if (firstId) await mealHeroShowByLocalId(firstId);
+  else mealHeroClear();
 }
 
 if (qs('#back-to-meals')) {
@@ -1460,7 +1629,6 @@ function renderMealMedia() {
       if (!url) return;
 
       if (!wrap.isConnected) return;
-
       if (wrap.contains(placeholder)) wrap.removeChild(placeholder);
 
       const el = document.createElement((rec.type || '').startsWith('image') ? 'img' : 'video');
@@ -1471,11 +1639,14 @@ function renderMealMedia() {
         el.playsInline = true;
       }
 
-      el.onclick = () => openMealMediaLightbox(m.title || 'Media', x.id);
+      // ✅ clicar na miniatura troca o HERO
+      el.onclick = async () => {
+        await mealHeroShowByLocalId(x.id);
+      };
 
       const del = document.createElement('button');
       del.textContent = '×';
-      del.onclick = (ev) => {
+      del.onclick = async (ev) => {
         ev.stopPropagation();
 
         const mealNow = getCurrentMeal();
@@ -1483,6 +1654,18 @@ function renderMealMedia() {
 
         const updated = (mealNow.media || []).filter(z => z.id !== x.id);
         saveCurrentMeal({ media: updated });
+
+        // ✅ se apagou o que estava no hero, escolher novo hero (ou esconder)
+        if (currentMealHeroMediaLocalId === x.id) {
+          const nextId = updated[0]?.id || null;
+          if (nextId) await mealHeroShowByLocalId(nextId);
+          else mealHeroClear();
+        } else {
+          if (!currentMealHeroMediaLocalId) {
+            const firstId = updated[0]?.id || null;
+            if (firstId) await mealHeroShowByLocalId(firstId);
+          }
+        }
 
         renderMealMedia();
         renderMeals();
@@ -1494,6 +1677,8 @@ function renderMealMedia() {
 
     mealMediaGrid.appendChild(wrap);
   });
+
+  if (!mediaArr.length) mealHeroClear();
 }
 
 /* ---------- abrir lightbox da ALIMENTAÇÃO ---------- */
