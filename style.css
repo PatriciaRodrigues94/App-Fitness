@@ -535,31 +535,36 @@ button:active{ transform:scale(0.97); }
 
 /* ===================== HERO (detalhe) ===================== */
 .detail-hero{
-  /* full width mesmo com .screen ter padding:20px */
   width: calc(100% + 40px);
   margin-left: -20px;
   margin-right: -20px;
 
   background: #000;
   border-radius: 0;
-  overflow: hidden;
+
+  /* para garantir que nada é cortado */
+  overflow: visible;
+
   margin-top: 6px;
   margin-bottom: 10px;
 }
 
-.detail-hero.is-hidden{
-  display:none;
+/* ✅ FOTO: nunca corta */
+.detail-hero img{
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
 }
 
-.detail-hero img,
+/* ✅ VÍDEO: nunca corta */
 .detail-hero video{
-  width:100%;
-  height:auto;
-  display:block;
-}
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
 
-/* opcional: limitar altura do vídeo no ecrã */
-.detail-hero video{
+  /* (opcional) se quiseres limitar a altura no ecrã sem cortar */
   max-height: 70vh;
 }
 
@@ -1014,6 +1019,7 @@ button:active{ transform:scale(0.97); }
   .progress-photos{ gap:8px; }
   .progress-photo-slot{ padding:9px; }
 }
+
 
 
 
