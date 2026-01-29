@@ -82,7 +82,13 @@
         <button id="delete-ex-btn" class="remove-btn" aria-label="Eliminar exercício">×</button>
       </div>
     </div>
-
+    
+    <!-- HERO (foto/vídeo grande) -->
+    <div id="ex-hero" class="detail-hero is-hidden">
+      <img id="ex-hero-img" alt="Foto do exercício" style="display:none;" />
+      <video id="ex-hero-video" controls playsinline style="display:none;"></video>
+    </div>
+    
     <section class="card">
       <div class="card-title">Fotos/Vídeos</div>
       <input type="file" id="ex-media-input" accept="image/*,video/*" multiple />
@@ -138,7 +144,13 @@
         <button id="delete-meal-btn" class="remove-btn" aria-label="Eliminar refeição">×</button>
       </div>
     </div>
-
+    
+    <!-- HERO (foto/vídeo grande) -->
+    <div id="meal-hero" class="detail-hero is-hidden">
+      <img id="meal-hero-img" alt="Foto da refeição" style="display:none;" />
+      <video id="meal-hero-video" controls playsinline style="display:none;"></video>
+    </div>
+    
     <section class="card">
       <div class="card-title">Fotos/Vídeos</div>
       <input type="file" id="meal-media-input" accept="image/*,video/*" multiple />
@@ -472,3 +484,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+
