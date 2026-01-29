@@ -532,6 +532,37 @@ button:active{ transform:scale(0.97); }
 }
 
 /* ===================== DETALHE EXERCÍCIO / REFEIÇÃO ===================== */
+
+/* ===================== HERO (detalhe) ===================== */
+.detail-hero{
+  /* full width mesmo com .screen ter padding:20px */
+  width: calc(100% + 40px);
+  margin-left: -20px;
+  margin-right: -20px;
+
+  background: #000;
+  border-radius: 0;
+  overflow: hidden;
+  margin-top: 6px;
+  margin-bottom: 10px;
+}
+
+.detail-hero.is-hidden{
+  display:none;
+}
+
+.detail-hero img,
+.detail-hero video{
+  width:100%;
+  height:auto;
+  display:block;
+}
+
+/* opcional: limitar altura do vídeo no ecrã */
+.detail-hero video{
+  max-height: 70vh;
+}
+
 #ex-notes,
 #meal-notes{
   width:100%;
@@ -983,6 +1014,7 @@ button:active{ transform:scale(0.97); }
   .progress-photos{ gap:8px; }
   .progress-photo-slot{ padding:9px; }
 }
+
 
 
 
