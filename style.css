@@ -1039,7 +1039,7 @@ button:active{ transform:scale(0.97); }
 /* Moldura da foto com margens, tipo a tua imagem */
 .progress-view-photo{
   width: 100%;
-  background: transparent;
+  background: #F9FAFB;
   border-radius: 14px;
   padding: 0;
 
@@ -1074,4 +1074,5 @@ button:active{ transform:scale(0.97); }
   font-size: 13px;
   text-align: left;
 }
+
 
