@@ -2334,7 +2334,7 @@ function renderProgress() {
     delBtn.className = 'remove-btn';
     delBtn.textContent = '×';
     delBtn.title = 'Eliminar';
-    delBtn.onclick = async () => {
+    delBtn.onclick = async (ev) => {
       ev.stopPropagation();
       const ok = confirm('Eliminar este registo?');
       if (!ok) return;
@@ -2343,7 +2343,6 @@ function renderProgress() {
       const idx = fresh.findIndex(x => x.id === r.id);
       if (idx === -1) return;
       
-      // ✅ apagar fotos associadas ao registo (se existirem)
       const photos = fresh[idx]?.photos || {};
       for (const k of ['front', 'side', 'back']) {
         const ref = photos[k];
@@ -2354,6 +2353,14 @@ function renderProgress() {
           } catch {}
         }
       }
+      
+      fresh.splice(idx, 1);
+      saveProgress(fresh);
+      
+      renderProgress();
+      renderComparePicker();
+      renderCompareGrid();
+    };
       
       // remover registo
       fresh.splice(idx, 1);
