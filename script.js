@@ -34,6 +34,11 @@ function openScreen(id) {
   qsa('.screen').forEach(s => s.classList.remove('active'));
   const el = qs(`#${id}`);
   if (el) el.classList.add('active');
+
+  // 👉 sempre que entrar no Progresso, abrir no separador "Registos"
+  if (id === 'screen3') {
+    setProgressTab('records');
+  }
 }
 
 // elementos com data-screen (home cards + botões voltar)
