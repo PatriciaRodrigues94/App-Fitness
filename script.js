@@ -2335,6 +2335,7 @@ function renderProgress() {
     delBtn.textContent = '×';
     delBtn.title = 'Eliminar';
     delBtn.onclick = async () => {
+      ev.stopPropagation();
       const ok = confirm('Eliminar este registo?');
       if (!ok) return;
       
