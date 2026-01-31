@@ -1,4 +1,4 @@
-const CACHE_NAME = "app-fitness-2026-01-31-v11";
+const CACHE_NAME = "app-fitness-2026-01-31-v12";
 const ASSETS = [
   "./",
   "./index.html",
@@ -32,4 +32,5 @@ self.addEventListener("fetch", (event) => {
   );
 
 });
+
 
