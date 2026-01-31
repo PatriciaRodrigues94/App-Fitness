@@ -2368,6 +2368,9 @@ function renderProgress() {
     actions.append(editBtn, delBtn);
     row.append(left, actions);
     list.appendChild(row);
+
+    // ✅ clicar no registo abre ecrã só com fotos
+    row.onclick = () => openProgressPhotosView(r.id);
   });
 
   const sortedAsc = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
