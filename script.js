@@ -2361,17 +2361,6 @@ function renderProgress() {
       renderComparePicker();
       renderCompareGrid();
     };
-      
-      // remover registo
-      fresh.splice(idx, 1);
-      saveProgress(fresh);
-      
-      renderProgress();
-      
-      // se estiver no separador comparar, refresca também
-      renderComparePicker();
-      renderCompareGrid();
-    };
 
     actions.append(editBtn, delBtn);
     row.append(left, actions);
