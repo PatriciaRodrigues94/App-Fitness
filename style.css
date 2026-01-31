@@ -1020,7 +1020,57 @@ button:active{ transform:scale(0.97); }
   .progress-photo-slot{ padding:9px; }
 }
 
+/* ===================== PROGRESSO: ECRÃ "SÓ FOTOS" ===================== */
 
+#screenProgressPhotos{
+  /* herda do .screen, mas garantimos layout certinho */
+  padding: 20px;
+}
 
+.progress-view-photos{
+  width: 100%;
+  max-width: 420px;     /* não ocupa o ecrã todo */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 
+/* Moldura da foto com margens, tipo a tua imagem */
+.progress-view-photo{
+  width: 100%;
+  background: #000;
+  border-radius: 14px;
+  padding: 10px;
 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Foto: define altura máxima; largura ajusta */
+.progress-view-photo img{
+  max-height: 60vh;     /* ✅ ajusta aqui: 50vh / 55vh / 60vh */
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+/* placeholder quando não existe foto */
+.progress-view-empty{
+  width: 100%;
+  max-width: 420px;
+  border-radius: 14px;
+  border: 1px dashed #e5e7eb;
+  background: #ffffff;
+  padding: 14px;
+  color: #6b7280;
+  font-size: 13px;
+  text-align: left;
+}
