@@ -742,15 +742,51 @@ async function exHeroShowByLocalId(mediaLocalId){
   }
 }
 
-/* clicar no hero abre lightbox */
-if (exHero) {
-  exHero.addEventListener('click', () => {
-    if (!currentExHeroMediaLocalId) return;
-    const ex = getCurrentExercise();
-    if (!ex) return;
-    openMediaLightbox(ex.name || 'Media', currentExHeroMediaLocalId);
-  });
+/* ✅ HERO (EXERCÍCIO): swipe para anterior/seguinte (sem abrir lightbox) */
+function exGetMediaIdsInOrder() {
+  const ex = getCurrentExercise();
+  return (ex?.media || []).map(x => x.id).filter(Boolean);
 }
+
+async function exHeroGo(delta) {
+  const ids = exGetMediaIdsInOrder();
+  if (!ids.length) return;
+
+  let idx = ids.indexOf(currentExHeroMediaLocalId);
+  if (idx === -1) idx = 0;
+
+  idx = (idx + delta + ids.length) % ids.length;
+  await exHeroShowByLocalId(ids[idx]);
+}
+
+(function enableExHeroSwipe() {
+  if (!exHero) return;
+
+  let startX = 0, startY = 0, touching = false;
+
+  exHero.addEventListener('touchstart', (e) => {
+    if (!currentExHeroMediaLocalId) return;
+    const t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    touching = true;
+  }, { passive: true });
+
+  exHero.addEventListener('touchend', async (e) => {
+    if (!touching) return;
+    touching = false;
+
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+
+    // swipe horizontal claro
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      if (dx < 0) await exHeroGo(+1); // esquerda -> seguinte
+      else        await exHeroGo(-1); // direita -> anterior
+    }
+  }, { passive: true });
+})();
 
 function getCurrentExercise() {
   const all = loadExercises();
@@ -1485,15 +1521,50 @@ async function mealHeroShowByLocalId(mediaLocalId){
   }
 }
 
-/* clicar no hero abre lightbox */
-if (mealHero) {
-  mealHero.addEventListener('click', () => {
-    if (!currentMealHeroMediaLocalId) return;
-    const m = getCurrentMeal();
-    if (!m) return;
-    openMealMediaLightbox(m.title || 'Media', currentMealHeroMediaLocalId);
-  });
+/* ✅ HERO (REFEIÇÃO): swipe para anterior/seguinte (sem abrir lightbox) */
+function mealGetMediaIdsInOrder() {
+  const m = getCurrentMeal();
+  return (m?.media || []).map(x => x.id).filter(Boolean);
 }
+
+async function mealHeroGo(delta) {
+  const ids = mealGetMediaIdsInOrder();
+  if (!ids.length) return;
+
+  let idx = ids.indexOf(currentMealHeroMediaLocalId);
+  if (idx === -1) idx = 0;
+
+  idx = (idx + delta + ids.length) % ids.length;
+  await mealHeroShowByLocalId(ids[idx]);
+}
+
+(function enableMealHeroSwipe() {
+  if (!mealHero) return;
+
+  let startX = 0, startY = 0, touching = false;
+
+  mealHero.addEventListener('touchstart', (e) => {
+    if (!currentMealHeroMediaLocalId) return;
+    const t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    touching = true;
+  }, { passive: true });
+
+  mealHero.addEventListener('touchend', async (e) => {
+    if (!touching) return;
+    touching = false;
+
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      if (dx < 0) await mealHeroGo(+1);
+      else        await mealHeroGo(-1);
+    }
+  }, { passive: true });
+})();
 
 function getCurrentMeal() {
   const all = loadMeals();
