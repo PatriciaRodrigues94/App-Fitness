@@ -1075,5 +1075,9 @@ button:active{ transform:scale(0.97); }
   text-align: left;
 }
 
-
-
+/* Progresso – ecrã só com fotos */
+#screenProgressPhotos .progress-title{
+  font-size: 14px;   /* ajusta a gosto */
+  font-weight: 700;
+  opacity: 0.85;
+}
