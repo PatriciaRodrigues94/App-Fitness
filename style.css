@@ -1039,16 +1039,16 @@ button:active{ transform:scale(0.97); }
 /* Moldura da foto com margens, tipo a tua imagem */
 .progress-view-photo{
   width: 100%;
-  background: #000;
+  background: transparent;
   border-radius: 14px;
-  padding: 10px;
+  padding: 0;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.06);
+  overflow: visible;
+  border: none;
 }
 
 /* Foto: define altura máxima; largura ajusta */
@@ -1074,3 +1074,4 @@ button:active{ transform:scale(0.97); }
   font-size: 13px;
   text-align: left;
 }
+
