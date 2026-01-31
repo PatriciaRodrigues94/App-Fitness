@@ -2447,6 +2447,74 @@ function drawChart(data) {
   });
 }
 
+const progressPhotosTitle = qs('#progress-photos-title');
+const progressViewPhotos = qs('#progress-view-photos');
+
+if (qs('#back-to-progress')) {
+  qs('#back-to-progress').onclick = () => {
+    openScreen('screen3');
+    setProgressTab('records'); // volta ao separador registos
+  };
+}
+
+async function openProgressPhotosView(recordId) {
+  const data = loadProgress();
+  const r = data.find(x => x.id === recordId);
+  if (!r) return;
+
+  // título: data + peso
+  if (progressPhotosTitle) {
+    progressPhotosTitle.textContent =
+      `${r.date || '—'}${r.weight != null ? ` • ${fmtKg(r.weight)}` : ''}`;
+  }
+
+  // limpar
+  if (progressViewPhotos) progressViewPhotos.innerHTML = '';
+
+  const positions = [
+    { key: 'front', label: 'Frente' },
+    { key: 'side',  label: 'Lado' },
+    { key: 'back',  label: 'Costas' }
+  ];
+
+  const photos = r.photos || {};
+  let any = false;
+
+  for (const pos of positions) {
+    const ref = photos[pos.key];
+    if (!ref) continue;
+
+    any = true;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'progress-view-photo';
+
+    try {
+      const url = await getMediaObjectURL(ref);
+      if (url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = `${pos.label} — ${r.date || ''}`;
+        wrap.appendChild(img);
+        progressViewPhotos.appendChild(wrap);
+      }
+    } catch (e) {
+      // ignora falhas e continua
+    }
+  }
+
+  // se não tem fotos
+  if (!any) {
+    const empty = document.createElement('div');
+    empty.className = 'progress-view-empty';
+    empty.innerHTML = `<div style="font-weight:800;margin-bottom:6px;">Sem fotos neste registo</div>
+                       <div>Podes adicionar fotos ao editar o registo.</div>`;
+    progressViewPhotos.appendChild(empty);
+  }
+
+  openScreen('screenProgressPhotos');
+}
+
 /* =========================================================
    MENU ⋯ + EXPORTAR / IMPORTAR + LIMPEZA
 ========================================================= */
