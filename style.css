@@ -1036,19 +1036,19 @@ button:active{ transform:scale(0.97); }
   margin-bottom: 16px;
 }
 
-/* Moldura da foto com margens, tipo a tua imagem */
+/* Moldura removida: agora fica só o fundo da app */
 .progress-view-photo{
   width: 100%;
-  background: #F9FAFB;
-  border-radius: 14px;
-  padding: 0;
+  background: transparent;     /* em vez de #000 */
+  border-radius: 0;            /* opcional: tira arredondado da “moldura” */
+  padding: 0;                  /* remove a borda preta (era o padding) */
 
   display: flex;
   align-items: center;
   justify-content: center;
 
   overflow: visible;
-  border: none;
+  border: none;                /* remove a linha */
 }
 
 /* Foto: define altura máxima; largura ajusta */
@@ -1074,5 +1074,6 @@ button:active{ transform:scale(0.97); }
   font-size: 13px;
   text-align: left;
 }
+
 
 
