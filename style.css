@@ -1162,7 +1162,18 @@ button:active{ transform:scale(0.97); }
   opacity: 0.85;
 }
 
+/* ✅ Comparação: ocupar a largura toda do ecrã */
+#screenProgressCompare .compare-cols-head,
+#screenProgressCompare .compare-stage{
+  align-self: stretch;     /* <- força a esticar dentro do flex */
+}
 
+/* ✅ Comparação: tirar a “margem” lateral grande do .screen (20px) */
+#screenProgressCompare{
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
 
-
-
+/* (opcional) afinar ainda mais o “fio” lateral interno */
+#screenProgressCompare .compare-cols-head{ padding: 0 4px; }
+#screenProgressCompare .compare-stage{ padding: 0 4px; }
