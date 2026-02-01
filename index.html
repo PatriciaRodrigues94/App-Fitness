@@ -215,21 +215,22 @@
 
     <!-- ✅ Painel 2: Comparar fotos -->
     <div id="progress-panel-compare" class="progress-panel" role="tabpanel" aria-labelledby="tab-progress-compare">
-      <section class="card">
+      <section class="card compare-card">
         <div class="card-title">Selecionar registos</div>
-        <div style="color:#6b7280;font-size:13px;line-height:18px;">
+        
+        <div class="compare-help">
           Seleciona os registos que queres comparar. Cada registo aparece numa linha com 3 colunas fixas:
           <b>Frente</b>, <b>Lado</b>, <b>Costas</b>.
         </div>
-
-        <div style="height:10px"></div>
-        <div id="compare-picker-list" class="progress-list"></div>
-
-        <div style="height:10px"></div>
-        <div class="form-actions">
+        
+        <!-- ✅ BOTÕES EXACTAMENTE AQUI (zona azul) -->
+        <div class="form-actions compare-actions">
           <button type="button" id="compare-clear" class="btn-danger full-width">Limpar seleção</button>
           <button type="button" id="compare-apply" class="btn-primary full-width">Comparar</button>
         </div>
+        
+        <!-- ✅ SÓ ISTO FAZ SCROLL -->
+        <div id="compare-picker-list" class="progress-list compare-picker-scroll"></div>
       </section>
     </div>
   </div>
@@ -507,6 +508,7 @@
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
