@@ -1093,7 +1093,6 @@ button:active{ transform:scale(0.97); }
   .compare-stage{ padding: 0 5px; }
   .compare-col-head .ch-date{ font-size: 10px; }
   .compare-col-head .ch-weight{ font-size: 9px; }
-}
 
   .progress-tab{ font-size: 12px; padding: 9px 10px !important; }
   .progress-photos{ gap:8px; }
@@ -1177,3 +1176,4 @@ button:active{ transform:scale(0.97); }
 /* (opcional) afinar ainda mais o “fio” lateral interno */
 #screenProgressCompare .compare-cols-head{ padding: 0 4px; }
 #screenProgressCompare .compare-stage{ padding: 0 4px; }
+
