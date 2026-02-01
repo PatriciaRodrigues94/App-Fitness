@@ -950,7 +950,11 @@ button:active{ transform:scale(0.97); }
   font-size: 13px !important;
 }
 
-/* Comparar: container geral */
+/* =========================================================
+   ✅ PROGRESSO — COMPARAR (picker + novo ecrã de comparação)
+========================================================= */
+
+/* Mantém o compare-grid (o que existe no tab) simples */
 .compare-grid{
   width:100%;
   max-width:420px;
@@ -960,61 +964,122 @@ button:active{ transform:scale(0.97); }
   margin-bottom: 14px;
 }
 
-/* (O JS vai criar cada linha. Estes estilos já deixam preparado o layout por 3 colunas.)
-   Estrutura sugerida para cada linha:
-   <div class="compare-row">
-     <div class="compare-badge">2026-01-01 • 70.2 kg</div>
-     <div class="compare-photos">
-       <div class="compare-photo"><img ...></div> x3
-     </div>
-   </div>
-*/
-.compare-row{
-  width:100%;
-  border-radius:14px;
-  overflow:hidden;
-  border: 1px solid #e5e7eb;
-  background:#ffffff;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-  position:relative;
+/* ---------- NOVO ECRÃ: screenProgressCompare ---------- */
+
+/* Cabeçalho de colunas (data + peso) */
+.compare-cols-head{
+  width: 100%;
+  /* largura total do ecrã com “linhas finas” dos lados */
+  margin-left: -20px;
+  margin-right: -20px;
+  padding: 0 6px; /* 👈 aqui controlas o “fio” do background nas laterais */
+  box-sizing: border-box;
+
+  display: flex;
+  gap: 2px;
+  align-items: stretch;
+
+  margin-top: 6px;
+  margin-bottom: 8px;
 }
 
-.compare-badge{
-  position:absolute;
-  top:8px;
-  left:8px;
-  background: rgba(17,24,39,0.55);
-  color:#ffffff;
+.compare-col-head{
+  flex: 1 1 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 6px 6px;
+
+  text-align: center;
+  color:#111827;
+}
+
+.compare-col-head .ch-date{
+  font-size: 11px;     /* 👈 data mais pequena */
+  font-weight: 800;
+  line-height: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compare-col-head .ch-weight{
+  font-size: 10px;     /* 👈 peso mais pequeno */
+  font-weight: 700;
+  color:#6b7280;
+  line-height: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Palco com as 3 linhas */
+.compare-stage{
+  width: 100%;
+  /* largura total do ecrã com “linhas finas” dos lados */
+  margin-left: -20px;
+  margin-right: -20px;
+  padding: 0 6px; /* 👈 aqui controlas o “fio” do background nas laterais */
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 14px;
+}
+
+/* Cada linha (Frente/Lado/Costas) */
+.compare-line{
+  display: flex;
+  gap: 2px;
+  align-items: stretch; /* altura da linha = a maior foto */
+  background: #e5e7eb;
+  border-radius: 0; /* sem “moldura” */
+}
+
+/* Cada célula da linha = 1 registo */
+.compare-cell{
+  flex: 1 1 0;
+  background: transparent;
+
+  display: flex;
+  align-items: center;     /* ✅ centra verticalmente as mais baixas */
+  justify-content: center; /* centra horizontalmente */
+  overflow: visible;
+}
+
+/* Foto: mantém proporção */
+.compare-cell img{
+  width: 100%;
+  height: auto;            /* ✅ mantém proporção e define altura natural */
+  display: block;
+  object-fit: contain;     /* ✅ nunca corta, nunca distorce */
+}
+
+/* Placeholder quando não existe foto */
+.compare-ph{
+  width: 100%;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #ffffff;
+  border: 1px dashed #e5e7eb;
+
   font-size: 12px;
   font-weight: 800;
-  padding: 6px 8px;
-  border-radius: 10px;
-  backdrop-filter: blur(2px);
-  z-index: 2;
+  color: #6b7280;
 }
 
-.compare-photos{
-  display:grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap:2px;
-  background:#e5e7eb;
-}
-
-.compare-photo{
-  background:#f3f4f6;
-  aspect-ratio: 1 / 1;
-  overflow:hidden;
-}
-
-.compare-photo img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-}
-
-/* mobile: se o ecrã for muito estreito, mantém 3 colunas mas baixa um pouco o padding */
+/* mobile muito estreito */
 @media (max-width: 360px){
+  .compare-cols-head{ padding: 0 5px; }
+  .compare-stage{ padding: 0 5px; }
+  .compare-col-head .ch-date{ font-size: 10px; }
+  .compare-col-head .ch-weight{ font-size: 9px; }
+}
+
   .progress-tab{ font-size: 12px; padding: 9px 10px !important; }
   .progress-photos{ gap:8px; }
   .progress-photo-slot{ padding:9px; }
@@ -1081,4 +1146,5 @@ button:active{ transform:scale(0.97); }
   font-weight: 700;
   opacity: 0.85;
 }
+
 
