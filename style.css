@@ -1043,17 +1043,26 @@ button:active{ transform:scale(0.97); }
   background: transparent;
 
   display: flex;
-  align-items: center;     /* ✅ centra verticalmente as mais baixas */
+  align-items: center;     /* centra verticalmente */
   justify-content: center; /* centra horizontalmente */
-  overflow: visible;
+
+  overflow: hidden;        /* ✅ permite crop horizontal */
 }
 
-/* Foto: mantém proporção */
+/* estado “normal” antes de normalizarmos a altura via JS */
 .compare-cell img{
   width: 100%;
-  height: auto;            /* ✅ mantém proporção e define altura natural */
+  height: auto;
   display: block;
-  object-fit: contain;     /* ✅ nunca corta, nunca distorce */
+  object-fit: contain;
+}
+
+/* ✅ estado “uniforme” depois: todas com a altura da mais alta */
+.compare-cell.is-uniform img{
+  height: 100%;            /* ✅ força altura igual dentro da célula */
+  width: auto;             /* ✅ mantém proporção e deixa ficar mais largo se precisar */
+  max-width: none;         /* importante: não limitar a largura */
+  display: block;
 }
 
 /* Placeholder quando não existe foto */
@@ -1146,5 +1155,6 @@ button:active{ transform:scale(0.97); }
   font-weight: 700;
   opacity: 0.85;
 }
+
 
 
