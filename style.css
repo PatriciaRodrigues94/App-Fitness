@@ -1279,7 +1279,18 @@ button:active{ transform:scale(0.97); }
   }
 }
 
+/* ============================
+   RESTORE: lista dos TIPOS (screen2)
+   Pequeno-almoço / Almoço / Lanche / Jantar
+   ============================ */
+#screen2 #mealtypes-list .list-card{
+  padding: 12px;              /* volta ao “card” mais alto */
+  align-items: center;
+}
 
-
-
-
+#screen2 #mealtypes-list .list-sub{
+  min-height: 32px;           /* volta a ter “corpo” como antes */
+  margin-top: 4px;
+  line-height: 16px;
+  white-space: normal;
+}
