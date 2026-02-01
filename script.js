@@ -1999,8 +1999,15 @@ async function renderCompareGrid() {
 
 if (compareApplyBtn) {
   compareApplyBtn.onclick = () => {
-    // só desenha o grid com o que já está selecionado
-    renderCompareGrid();
+    const data = getSortedProgressDesc();
+    const selected = data.filter(r => compareSelectedIds.has(r.id));
+
+    if (selected.length < 2) {
+      alert('Seleciona pelo menos 2 registos para comparar.');
+      return;
+    }
+
+    openProgressCompareView(selected.map(x => x.id));
   };
 }
 
@@ -2445,6 +2452,16 @@ function drawChart(data) {
 
 const progressPhotosTitle = qs('#progress-photos-title');
 const progressViewPhotos = qs('#progress-view-photos');
+const progressCompareTitle = qs('#progress-compare-title');
+const compareColsHead = qs('#compare-cols-head');
+const compareStage = qs('#compare-stage');
+
+if (qs('#back-to-compare-tab')) {
+  qs('#back-to-compare-tab').onclick = () => {
+    openScreen('screen3');
+    setProgressTab('compare'); // volta ao separador comparar
+  };
+}
 
 if (qs('#back-to-progress')) {
   qs('#back-to-progress').onclick = () => {
@@ -2509,6 +2526,103 @@ async function openProgressPhotosView(recordId) {
   }
 
   openScreen('screenProgressPhotos');
+}
+
+async function openProgressCompareView(recordIds) {
+  const data = getSortedProgressDesc();
+  const selected = data.filter(r => recordIds.includes(r.id));
+
+  if (!selected.length) return;
+
+  // título simples
+  if (progressCompareTitle) {
+    progressCompareTitle.textContent = `Comparação (${selected.length})`;
+  }
+
+  // limpar UI
+  if (compareColsHead) compareColsHead.innerHTML = '';
+  if (compareStage) compareStage.innerHTML = '';
+
+  // 1) Cabeçalho por coluna (data + peso)
+  for (const r of selected) {
+    const head = document.createElement('div');
+    head.className = 'compare-col-head';
+
+    const d = document.createElement('div');
+    d.className = 'ch-date';
+    d.textContent = r.date || '—';
+
+    const w = document.createElement('div');
+    w.className = 'ch-weight';
+    w.textContent = (r.weight != null) ? fmtKg(r.weight) : '—';
+
+    head.append(d, w);
+    compareColsHead.appendChild(head);
+  }
+
+  // 2) Três linhas: Frente / Lado / Costas
+  const lines = [
+    { key: 'front', label: 'Frente' },
+    { key: 'side',  label: 'Lado' },
+    { key: 'back',  label: 'Costas' }
+  ];
+
+  for (const line of lines) {
+    const row = document.createElement('div');
+    row.className = 'compare-line';
+
+    for (const r of selected) {
+      const cell = document.createElement('div');
+      cell.className = 'compare-cell';
+
+      const ref = r?.photos?.[line.key] || null;
+
+      if (!ref) {
+        const ph = document.createElement('div');
+        ph.className = 'compare-ph';
+        ph.textContent = line.label;
+        cell.appendChild(ph);
+      } else {
+        try {
+          const url = await getMediaObjectURL(ref);
+          if (url) {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = `${line.label} — ${r.date || ''}`;
+
+            // ✅ abre em grande ao clicar (lightbox)
+            img.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              lb.title = `Progresso • ${r.date || ''}`;
+              lb.items = [{ id: `${r.id}-${line.key}`, type: 'image/jpeg', src: url, notes: '' }];
+              lb.index = 0;
+              lb.saveNotes = null;
+              lbShow();
+            };
+
+            cell.appendChild(img);
+          } else {
+            const ph = document.createElement('div');
+            ph.className = 'compare-ph';
+            ph.textContent = line.label;
+            cell.appendChild(ph);
+          }
+        } catch {
+          const ph = document.createElement('div');
+          ph.className = 'compare-ph';
+          ph.textContent = line.label;
+          cell.appendChild(ph);
+        }
+      }
+
+      row.appendChild(cell);
+    }
+
+    compareStage.appendChild(row);
+  }
+
+  openScreen('screenProgressCompare');
 }
 
 /* =========================================================
