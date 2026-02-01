@@ -251,7 +251,7 @@ button:active{ transform:scale(0.97); }
   max-width:420px;
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:6px;                   /* 👈 menos espaço entre registos */
   margin-bottom:14px;
 }
 
@@ -1278,6 +1278,7 @@ button:active{ transform:scale(0.97); }
     padding: 9px 10px !important;
   }
 }
+
 
 
 
