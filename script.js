@@ -1817,7 +1817,11 @@ function setProgressTab(name) {
   panelRecords?.classList.toggle('active', isRecords);
   panelCompare?.classList.toggle('active', !isRecords);
 
-  // quando abre "Comparar", refresca lista + grid
+  // ✅ NOVO: só bloqueia scroll do ecrã quando estás em "Comparar"
+  const screen3 = qs('#screen3');
+  screen3?.classList.toggle('is-compare', !isRecords);
+
+  // quando abre "Comparar", refresca lista
   if (!isRecords) {
     renderComparePicker();
     renderCompareGrid();
