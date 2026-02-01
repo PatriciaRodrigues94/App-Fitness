@@ -3327,3 +3327,7 @@ window.addEventListener('pageshow', () => { initApp(); });
 window.addEventListener('beforeunload', () => {
   try { revokeAllMediaObjectURLs(); } catch {}
 });
+
+async function renderCompareGrid() {
+  // intentionally empty: grid preview removido
+}
