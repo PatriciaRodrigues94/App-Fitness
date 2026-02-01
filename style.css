@@ -1226,10 +1226,16 @@ button:active{ transform:scale(0.97); }
 
 /* Se quiseres que SÓ a tab "Comparar" não faça scroll no ecrã todo */
 #screen3{
-  overflow: hidden;
+  /* ✅ Registos precisam de scroll no ecrã */
+  overflow-y: auto;
 
-  /* ↓ em baixo fica “curto e bonito”, e respeita a barra do Android */
+  /* mantém a tua margem inferior */
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
+}
+
+/* ✅ Só no separador "Comparar" é que bloqueamos o scroll do ecrã */
+#screen3.is-compare{
+  overflow: hidden;
 }
 
 /* Painéis dos tabs: permitir flex crescer */
@@ -1270,4 +1276,5 @@ button:active{ transform:scale(0.97); }
     padding: 9px 10px !important;
   }
 }
+
 
