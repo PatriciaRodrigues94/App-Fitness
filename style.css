@@ -1171,10 +1171,12 @@ button:active{ transform:scale(0.97); }
   display: flex;
   flex-direction: column;
 
-  /* ocupa bem o ecrã sem estourar */
-  max-height: calc(100vh - 240px);
-  /* 240px é uma margem “segura” para header + tabs + paddings.
-     Se achares curto/alto, ajustamos. */
+  /* ✅ ocupar o máximo disponível do ecrã */
+  flex: 1;
+  min-height: 0;
+
+  /* ❌ remover limite fixo que cria “espaço morto” */
+  max-height: none;
 }
 
 /* texto de ajuda */
@@ -1209,4 +1211,55 @@ button:active{ transform:scale(0.97); }
 
   /* só para dar folga no fim */
   padding-bottom: 10px;
+}
+
+/* =========================================================
+   ✅ FIX: Comparar ocupa o resto do ecrã + scroll só na lista
+========================================================= */
+
+/* No ecrã Progresso, o separador "Comparar" deve poder esticar */
+#progress-panel-compare{
+  flex: 1;
+  min-height: 0;
+}
+
+/* Se quiseres que SÓ a tab "Comparar" não faça scroll no ecrã todo */
+#screen3{
+  /* o .screen tem overflow-y:auto por defeito; aqui anulamos só para este ecrã */
+  overflow: hidden;
+}
+
+/* Painéis dos tabs: permitir flex crescer */
+.progress-panel.active{
+  flex: 1;
+  min-height: 0;
+}
+
+/* A lista dentro do card é que faz scroll e ocupa o resto */
+.compare-picker-scroll{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* =========================================================
+   ✅ FIX: Botões iguais aos tabs (altura + texto numa linha)
+========================================================= */
+
+/* garante que os botões ficam exatamente com “altura de tab” */
+.compare-actions button{
+  padding: 10px 12px !important;     /* igual aos .progress-tab */
+  font-size: 13px !important;        /* igual aos .progress-tab */
+  line-height: 1 !important;
+  border-radius: 12px !important;
+  white-space: nowrap;               /* ✅ "Limpar seleção" não quebra */
+}
+
+/* opcional: se em ecrãs pequenos ainda apertar, baixa ligeiro */
+@media (max-width: 360px){
+  .compare-actions button{
+    font-size: 12px !important;
+    padding: 9px 10px !important;
+  }
 }
