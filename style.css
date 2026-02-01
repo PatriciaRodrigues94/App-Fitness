@@ -1159,3 +1159,54 @@ button:active{ transform:scale(0.97); }
   padding-right: 8px !important;
 }
 
+/* ===================== COMPARAR: botões fixos + scroll só na lista ===================== */
+
+#progress-panel-compare{
+  /* importante para o flex funcionar bem com altura */
+  width: 100%;
+}
+
+/* o card vira um “contentor” vertical */
+.compare-card{
+  display: flex;
+  flex-direction: column;
+
+  /* ocupa bem o ecrã sem estourar */
+  max-height: calc(100vh - 240px);
+  /* 240px é uma margem “segura” para header + tabs + paddings.
+     Se achares curto/alto, ajustamos. */
+}
+
+/* texto de ajuda */
+.compare-help{
+  color:#6b7280;
+  font-size:13px;
+  line-height:18px;
+  margin-bottom: 10px;
+}
+
+/* botões ficam na zona azul e não rolam */
+.compare-actions{
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  background: #ffffff;
+  padding: 8px 0 10px;
+
+  /* linha de separação subtil */
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 10px;
+}
+
+/* ✅ só a lista faz scroll */
+.compare-picker-scroll{
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  /* MUITO importante para flex + scroll funcionar em mobile */
+  min-height: 0;
+
+  /* só para dar folga no fim */
+  padding-bottom: 10px;
+}
