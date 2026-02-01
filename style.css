@@ -972,8 +972,9 @@ button:active{ transform:scale(0.97); }
 /* Cabeçalho de colunas (data + peso) */
 .compare-cols-head{
   width: 100%;
-  margin: 6px 0 8px;
-  padding: 0;                  /* padding vem do screen */
+  max-width: 420px;
+  margin: 6px auto 8px;     /* ✅ centra */
+  padding: 0;
   box-sizing: border-box;
 
   display: flex;
@@ -1014,8 +1015,9 @@ button:active{ transform:scale(0.97); }
 /* Palco com as 3 linhas */
 .compare-stage{
   width: 100%;
-  margin: 0;
-  padding: 0;                  /* padding vem do screen */
+  max-width: 420px;
+  margin: 0 auto;           /* ✅ centra */
+  padding: 0;
   box-sizing: border-box;
 
   display: flex;
@@ -1151,14 +1153,9 @@ button:active{ transform:scale(0.97); }
   opacity: 0.85;
 }
 
-/* ✅ Comparação: ocupar a largura toda do ecrã */
-#screenProgressCompare .compare-cols-head,
-#screenProgressCompare .compare-stage{
-  align-self: stretch;     /* <- força a esticar dentro do flex */
-}
-
 /* ✅ Comparação: tirar a “margem” lateral grande do .screen (20px) */
 #screenProgressCompare{
-  padding-left: 4px !important;
-  padding-right: 4px !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
 }
+
