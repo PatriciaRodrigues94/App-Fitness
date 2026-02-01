@@ -259,15 +259,15 @@ button:active{ transform:scale(0.97); }
   background:#ffffff;
   color:#111827;
   border-radius:12px;
-  padding:10px 12px;            /* menos altura */
+  padding:8px 12px;          /* 👈 menos altura */
 
   border: 1px solid #e5e7eb;
   box-shadow: 0 4px 14px rgba(0,0,0,0.06);
 
   display:flex;
-  align-items:flex-start;       /* ✅ em vez de center */
+  align-items:flex-start;
   justify-content:space-between;
-  gap:10px;
+  gap:8px;                   /* 👈 menos espaço interno */
   text-align:left;
 }
 
@@ -303,14 +303,16 @@ button:active{ transform:scale(0.97); }
   overflow:hidden;
   text-overflow:ellipsis;
   max-width:240px;
+  line-height:18px;          /* 👈 controla altura real */
+  margin:0;                  /* 👈 remove espaço fantasma */
 }
 
 .list-sub{
   font-size:12px;
   color:#6b7280;
-  margin-top:2px;               /* um pouco menos */
-  line-height:16px;
-  min-height:0;                 /* ✅ remove a altura mínima */
+  margin-top:1px;            /* 👈 quase encostado */
+  line-height:14px;          /* 👈 reduz altura da linha */
+  min-height:0;
 }
 
 /* nos EXERCÍCIOS: 1 linha fixa + ellipsis */
@@ -1276,6 +1278,7 @@ button:active{ transform:scale(0.97); }
     padding: 9px 10px !important;
   }
 }
+
 
 
 
