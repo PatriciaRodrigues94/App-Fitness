@@ -956,13 +956,18 @@ button:active{ transform:scale(0.97); }
 
 /* Mantém o compare-grid (o que existe no tab) simples */
 .compare-grid{
-  width:100%;
-  max-width:420px;
+  /* ✅ full-bleed: anula os 20px do .screen */
+  width: calc(100% + 40px);
+  max-width: none;
+  margin-left: -20px;
+  margin-right: -20px;
+
   display:flex;
   flex-direction:column;
-  gap:4px;              /* ← linha fina entre blocos */
+
+  gap:4px;             /* espessura da linha entre blocos */
+  padding: 0 4px;      /* ✅ margem lateral igual ao gap */
   margin-bottom: 4px;
-  padding: 0 4px;       /* ← margem lateral igual à linha */
 }
 
 /* ---------- NOVO ECRÃ: screenProgressCompare ---------- */
@@ -1156,6 +1161,7 @@ button:active{ transform:scale(0.97); }
   font-weight: 700;
   opacity: 0.85;
 }
+
 
 
 
