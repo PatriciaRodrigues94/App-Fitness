@@ -1184,7 +1184,7 @@ button:active{ transform:scale(0.97); }
   color:#6b7280;
   font-size:13px;
   line-height:18px;
-  margin-bottom: 10px;
+  margin-bottom: 8px; /* antes: 10px */
 }
 
 /* botões ficam na zona azul e não rolam */
@@ -1193,12 +1193,13 @@ button:active{ transform:scale(0.97); }
   top: 0;
   z-index: 10;
 
-  background: #ffffff;
-  padding: 8px 0 10px;
+  background:#ffffff;
 
-  /* linha de separação subtil */
+  /* ↓ menos “altura azul” */
+  padding: 6px 0 8px;     /* antes: 8px 0 10px */
+  margin-bottom: 8px;     /* antes: 10px */
+
   border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 10px;
 }
 
 /* ✅ só a lista faz scroll */
@@ -1225,8 +1226,10 @@ button:active{ transform:scale(0.97); }
 
 /* Se quiseres que SÓ a tab "Comparar" não faça scroll no ecrã todo */
 #screen3{
-  /* o .screen tem overflow-y:auto por defeito; aqui anulamos só para este ecrã */
   overflow: hidden;
+
+  /* ↓ em baixo fica “curto e bonito”, e respeita a barra do Android */
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
 
 /* Painéis dos tabs: permitir flex crescer */
@@ -1237,10 +1240,14 @@ button:active{ transform:scale(0.97); }
 
 /* A lista dentro do card é que faz scroll e ocupa o resto */
 .compare-picker-scroll{
+  overflow-y:auto;
+  -webkit-overflow-scrolling: touch;
+
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+
+  /* ↓ margem final igual “à vista” e com safe-area */
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
 
 /* =========================================================
@@ -1263,3 +1270,4 @@ button:active{ transform:scale(0.97); }
     padding: 9px 10px !important;
   }
 }
+
