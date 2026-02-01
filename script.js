@@ -1849,6 +1849,11 @@ function getSortedProgressDesc() {
   return [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
+function getSortedProgressAsc() {
+  const data = loadProgress();
+  return [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+              
 function hasAnyProgressPhotos(r) {
   const p = r?.photos || {};
   return !!(p.front || p.side || p.back);
@@ -2529,7 +2534,7 @@ async function openProgressPhotosView(recordId) {
 }
 
 async function openProgressCompareView(recordIds) {
-  const data = getSortedProgressDesc();
+  const data = getSortedProgressAsc();
   const selected = data.filter(r => recordIds.includes(r.id));
 
   if (!selected.length) return;
