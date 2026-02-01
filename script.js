@@ -2621,8 +2621,58 @@ async function openProgressCompareView(recordIds) {
 
     compareStage.appendChild(row);
   }
-
+  
   openScreen('screenProgressCompare');
+
+  // ✅ esperar 1 frame e normalizar alturas (imagens já renderizadas)
+  requestAnimationFrame(() => {
+    normalizeCompareLineHeights();
+  });
+
+  // ✅ reforço: quando imagens terminarem de carregar, volta a normalizar
+  // (bom para Android/telemóveis mais lentos)
+  const imgs = compareStage?.querySelectorAll('img') || [];
+  imgs.forEach(img => {
+    img.addEventListener('load', () => normalizeCompareLineHeights(), { once: true });
+  });
+}
+
+function normalizeCompareLineHeights() {
+  if (!compareStage) return;
+
+  const lines = compareStage.querySelectorAll('.compare-line');
+  lines.forEach(line => {
+    const cells = Array.from(line.querySelectorAll('.compare-cell'));
+
+    // ignora placeholders
+    const imgs = cells
+      .map(c => c.querySelector('img'))
+      .filter(Boolean);
+
+    if (!imgs.length) return;
+
+    // 1) reset (voltar ao estado normal para medir certo)
+    cells.forEach(c => {
+      c.classList.remove('is-uniform');
+      c.style.height = '';
+    });
+
+    // 2) medir alturas renderizadas (com width:100%, height:auto)
+    let maxH = 0;
+    imgs.forEach(img => {
+      const h = img.getBoundingClientRect().height || 0;
+      if (h > maxH) maxH = h;
+    });
+
+    // se ainda não mediu bem (imagens a carregar), ignora
+    if (maxH < 10) return;
+
+    // 3) fixar altura da linha e uniformizar as células
+    cells.forEach(c => {
+      c.style.height = `${Math.round(maxH)}px`;
+      c.classList.add('is-uniform');
+    });
+  });
 }
 
 /* =========================================================
