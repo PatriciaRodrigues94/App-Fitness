@@ -1294,3 +1294,28 @@ button:active{ transform:scale(0.97); }
   line-height: 16px;
   white-space: normal;
 }
+
+/* ===================== PESQUISA GLOBAL DE REFEIÇÕES ===================== */
+.meal-search-card{
+  margin-top: 6px;
+}
+
+#meal-search{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  font-family:inherit;
+  font-size:14px;
+  color:#111827;
+  background:#ffffff;
+  outline:none;
+}
+
+#meal-search:focus{
+  border-color:#cbd5e1;
+}
+
+#meal-search-results{
+  margin-top:10px;
+}
