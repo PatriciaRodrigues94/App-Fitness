@@ -1178,6 +1178,9 @@ let editingMealId = null;
 const mealTypesList = qs('#mealtypes-list');
 const mealsList = qs('#meals-list');
 
+const mealSearchInput = qs('#meal-search');
+const mealSearchResults = qs('#meal-search-results');
+
 const modalMealType = qs('#modal-mealtype');
 const modalMeal = qs('#modal-meal');
 
