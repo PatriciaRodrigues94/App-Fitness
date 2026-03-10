@@ -1253,6 +1253,7 @@ function renderMealTypes() {
       saveMeals(loadMeals().filter(m => m.mealTypeId !== t.id));
 
       renderMealTypes();
+      renderMealSearchResults();
     };
 
     actions.append(editBtn, delBtn);
@@ -1275,6 +1276,8 @@ function renderMealTypes() {
       <div style="color:#6b7280;font-size:13px;">Carrega no + para adicionar (ex: Pequeno-almoço, Almoço...).</div>`;
     mealTypesList.appendChild(empty);
   }
+
+  renderMealSearchResults();
 }
 
 if (qs('#add-mealtype-btn')) {
