@@ -108,7 +108,7 @@
     </section>
   </div>
 
-  <!-- ================== PLANO ALIMENTAR: TIPOS ================== -->
+<!-- ================== PLANO ALIMENTAR: TIPOS ================== -->
   <div id="screen2" class="screen">
     <button class="back-top" data-screen="home">← <span>Voltar</span></button>
 
@@ -117,9 +117,21 @@
       <button id="add-mealtype-btn" class="icon-btn" aria-label="Adicionar tipo de refeição">+</button>
     </div>
 
+    <!-- 🔎 Pesquisa global de refeições -->
+    <section class="card meal-search-card">
+      <div class="card-title">Pesquisar refeição</div>
+      <input
+        type="text"
+        id="meal-search"
+        placeholder="Ex: frango, aveia, omelete..."
+        autocomplete="off"
+      />
+      <div id="meal-search-results" class="progress-list" style="display:none;"></div>
+    </section>
+
     <div id="mealtypes-list" class="progress-list"></div>
   </div>
-
+  
   <!-- ================== PLANO ALIMENTAR: REFEIÇÕES DO TIPO ================== -->
   <div id="screenMealType" class="screen">
     <button class="back-top" id="back-to-mealtypes">← <span>Voltar</span></button>
@@ -508,6 +520,7 @@
   <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
