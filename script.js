@@ -1280,6 +1280,87 @@ function renderMealTypes() {
   renderMealSearchResults();
 }
 
+/* ===================== PESQUISA GLOBAL DE REFEIÇÕES ===================== */
+function normalizeMealSearchText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function renderMealSearchResults() {
+  if (!mealSearchInput || !mealSearchResults) return;
+
+  const query = normalizeMealSearchText(mealSearchInput.value).trim();
+  mealSearchResults.innerHTML = '';
+
+  if (!query) {
+    mealSearchResults.style.display = 'none';
+    return;
+  }
+
+  const meals = loadMeals();
+  const types = loadMealTypes();
+  const typeMap = new Map(types.map(t => [t.id, t.title]));
+
+  const found = meals
+    .filter(m => {
+      const fullText = normalizeMealSearchText(
+        `${m.title || ''} ${m.notes || ''}`
+      );
+      return fullText.includes(query);
+    })
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  if (!found.length) {
+    const empty = document.createElement('div');
+    empty.className = 'card';
+    empty.innerHTML = `
+      <div class="card-title">Sem resultados</div>
+      <div style="color:#6b7280;font-size:13px;">Não encontrei nenhuma refeição.</div>
+    `;
+    mealSearchResults.appendChild(empty);
+    mealSearchResults.style.display = 'flex';
+    return;
+  }
+
+  found.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'list-card';
+
+    const left = document.createElement('div');
+    left.className = 'list-left';
+
+    const textBox = document.createElement('div');
+
+    const title = document.createElement('div');
+    title.className = 'list-title';
+    title.textContent = m.title || '—';
+
+    const sub = document.createElement('div');
+    sub.className = 'list-sub';
+    sub.textContent = typeMap.get(m.mealTypeId) || 'Sem tipo';
+
+    textBox.append(title, sub);
+    left.append(textBox);
+    card.append(left);
+
+    card.onclick = () => {
+      currentMealTypeId = m.mealTypeId;
+      currentMealId = m.id;
+      openMealDetail();
+    };
+
+    mealSearchResults.appendChild(card);
+  });
+
+  mealSearchResults.style.display = 'flex';
+}
+
+if (mealSearchInput) {
+  mealSearchInput.addEventListener('input', renderMealSearchResults);
+}
+
 if (qs('#add-mealtype-btn')) {
   qs('#add-mealtype-btn').onclick = () => {
     editingMealTypeId = null;
